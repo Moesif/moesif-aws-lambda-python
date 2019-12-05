@@ -41,11 +41,13 @@ def MoesifLogger(moesif_options):
                     username = identify_user(event, context)
                 else:
                     try:
-                        rc_identity_id = event["requestContext"]["identity"]["cognitoIdentityId"]
-                        if rc_identity_id:
-                            username = rc_identity_id
+                        if 'requestContext' in event and 'identity' in event["requestContext"] and 'cognitoIdentityId' in event["requestContext"]["identity"]:
+                            rc_identity_id = event["requestContext"]["identity"]["cognitoIdentityId"]
+                            if rc_identity_id:
+                                username = rc_identity_id
                     except:
-                        print("can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
+                        if self.DEBUG:
+                            print("can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
             except Exception as e:
                 if self.DEBUG:
                     print("can not execute identify_user function, please check moesif settings.")
@@ -70,11 +72,14 @@ def MoesifLogger(moesif_options):
             req_body = None
             req_transfer_encoding = None
             try:
-                if raw_request_body['isBase64Encoded']:
+                if 'isBase64Encoded' in raw_request_body and 'body' in raw_request_body and raw_request_body['isBase64Encoded'] and raw_request_body['body']:
                     req_body = raw_request_body['body']
                     req_transfer_encoding = 'base64'
                 else:
-                    req_body = json.dumps(raw_request_body['body'])
+                    if 'body' in raw_request_body and raw_request_body['body'] and isinstance(raw_request_body['body'], str):
+                        req_body = json.dumps(json.loads(raw_request_body['body']))
+                    else:
+                        req_body = json.dumps(raw_request_body['body'])
                     req_transfer_encoding = 'json'
             except Exception as e:
                 if self.DEBUG:
@@ -87,11 +92,14 @@ def MoesifLogger(moesif_options):
             resp_body = None
             resp_transfer_encoding = None
             try:
-                if 'isBase64Encoded' in raw_response_body and raw_response_body['isBase64Encoded']:
+                if 'isBase64Encoded' in raw_response_body and 'body' in raw_response_body and raw_response_body['isBase64Encoded'] and raw_response_body['body']:
                     resp_body = raw_response_body['body']
                     resp_transfer_encoding = 'base64'
                 else:
-                    resp_body = json.dumps(raw_response_body['body'])
+                    if 'body' in raw_response_body and raw_response_body['body'] and isinstance(raw_response_body['body'], str):
+                        resp_body = json.dumps(json.loads(raw_response_body['body']))
+                    else:
+                        resp_body = json.dumps(raw_response_body['body'])
                     resp_transfer_encoding = 'json'
             except Exception as e:
                 if self.DEBUG:
@@ -146,11 +154,12 @@ def MoesifLogger(moesif_options):
                     self.metadata = get_meta(event, context)
                 else:
                     try:
-                        self.metadata = {
-                            'trace_id': context.aws_request_id,
-                            'function_name': context.function_name,
-                            'request_context': event['requestContext']
-                        }
+                        if context.aws_request_id and context.function_name and 'requestContext' in event:
+                            self.metadata = {
+                                'trace_id': str(context.aws_request_id),
+                                'function_name': context.function_name,
+                                'request_context': event['requestContext']
+                            }
                     except:
                         if self.DEBUG:
                             print("can not fetch default function_name and request_context from aws context, setting metadata to None.")
@@ -172,9 +181,10 @@ def MoesifLogger(moesif_options):
                     self.session_token = get_token(event, context)
                 else:
                     try:
-                        rc_api_key = event['requestContext']['identity']['apiKey']
-                        if rc_api_key:
-                            self.session_token = rc_api_key
+                        if 'requestContext' in event and 'identity' in event['requestContext'] and 'apiKey' in event['requestContext']['identity'] and event['requestContext']['identity']['apiKey']:
+                            rc_api_key = event['requestContext']['identity']['apiKey']
+                            if rc_api_key:
+                                self.session_token = rc_api_key
                     except KeyError:
                         if self.DEBUG:
                             print("can not fetch apiKey from aws event, setting session_token to None.")
@@ -191,10 +201,11 @@ def MoesifLogger(moesif_options):
                     api_version = get_version(event, context)
                 else:
                     try:
-                        api_version = context.function_version
+                        if context.function_version:
+                            api_version = context.function_version
                     except KeyError:
                         if self.DEBUG:
-                            print("can not fetch default function_version from aws context, setting to None.")
+                            print("can not fetch default function_version from aws context, setting api_version to None.")
             except Exception as e:
                 if self.DEBUG:
                     print("can not execute GET_API_VERSION function, please check moesif settings.")
@@ -203,7 +214,8 @@ def MoesifLogger(moesif_options):
             # IpAddress
             ip_address = None
             try:
-                ip_address = self.client_ip.get_client_address(event['headers'], event['requestContext']['identity']['sourceIp'])
+                if 'headers' in event and 'requestContext' in event and 'identity' in event['requestContext'] and 'sourceIp' in event['requestContext']['identity'] and event['requestContext']['identity']['sourceIp']:
+                    ip_address = self.client_ip.get_client_address(event['headers'], event['requestContext']['identity']['sourceIp'])
             except Exception as e:
                 if self.DEBUG:
                     print("Error while fetching Client Ip address, setting Request Ip address to None.")
@@ -296,7 +308,7 @@ def MoesifLogger(moesif_options):
             # Send event to Moesif
             event_send = self.api_client.create_event(event_model)
             if self.DEBUG:
-                print('Event Send successfully')
+                print('Event Sent successfully')
             
             # Send response
             return retval
