@@ -77,9 +77,9 @@ def MoesifLogger(moesif_options):
                     req_transfer_encoding = 'base64'
                 else:
                     if 'body' in raw_request_body and raw_request_body['body'] and isinstance(raw_request_body['body'], str):
-                        req_body = json.dumps(json.loads(raw_request_body['body']))
+                        req_body = json.loads(raw_request_body['body'])
                     else:
-                        req_body = json.dumps(raw_request_body['body'])
+                        req_body = raw_request_body['body']
                     req_transfer_encoding = 'json'
             except Exception as e:
                 if self.DEBUG:
@@ -97,9 +97,9 @@ def MoesifLogger(moesif_options):
                     resp_transfer_encoding = 'base64'
                 else:
                     if 'body' in raw_response_body and raw_response_body['body'] and isinstance(raw_response_body['body'], str):
-                        resp_body = json.dumps(json.loads(raw_response_body['body']))
+                        resp_body = json.loads(raw_response_body['body'])
                     else:
-                        resp_body = json.dumps(raw_response_body['body'])
+                        resp_body = raw_response_body['body']
                     resp_transfer_encoding = 'json'
             except Exception as e:
                 if self.DEBUG:
