@@ -6,10 +6,15 @@ from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from .client_ip import ClientIp
 from datetime import *
-from urllib.parse import urlencode
 import base64
 import json
 import os
+from pprint import pprint
+import base64
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 def MoesifLogger(moesif_options):
     class log_data(LambdaDecorator):
@@ -26,8 +31,10 @@ def MoesifLogger(moesif_options):
             self.DEBUG = self.moesif_options.get('DEBUG', False)
             self.event = None
             self.context = None
+            self.start_time = datetime.utcnow()
+            
             # Intialized the client
-            if os.environ["MOESIF_APPLICATION_ID"]:
+            if os.environ.get("MOESIF_APPLICATION_ID"):
                 self.api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
             else:
                 raise Exception('Moesif Application ID is required in settings')
@@ -47,10 +54,10 @@ def MoesifLogger(moesif_options):
                                 username = rc_identity_id
                     except:
                         if self.DEBUG:
-                            print("can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
+                            print("MOESIF can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("can not execute identify_user function, please check moesif settings.")
+                    print("MOESIF can not execute identify_user function, please check moesif settings.")
                     print(e)
             return username
         
@@ -63,52 +70,51 @@ def MoesifLogger(moesif_options):
                     company_id = identify_company(event, context)
             except Exception as e:
                 if self.DEBUG:
-                    print("can not execute identify_company function, please check moesif settings.")
+                    print("MOESIF can not execute identify_company function, please check moesif settings.")
                     print(e)
             return company_id
         
-        def process_request_body(self, raw_request_body):
-            """Function to process Request body"""
-            req_body = None
-            req_transfer_encoding = None
-            try:
-                if 'isBase64Encoded' in raw_request_body and 'body' in raw_request_body and raw_request_body['isBase64Encoded'] and raw_request_body['body']:
-                    req_body = raw_request_body['body']
-                    req_transfer_encoding = 'base64'
-                else:
-                    if 'body' in raw_request_body and raw_request_body['body'] and isinstance(raw_request_body['body'], str):
-                        req_body = json.loads(raw_request_body['body'])
-                    else:
-                        req_body = raw_request_body['body']
-                    req_transfer_encoding = 'json'
-            except Exception as e:
-                if self.DEBUG:
-                    print('Error while parsing request body')
-                    print(e)
-            return req_body, req_transfer_encoding
+        def build_uri(self, event):
 
-        def process_response_body(self, raw_response_body):
-            """Function to process Response body"""
-            resp_body = None
-            resp_transfer_encoding = None
+            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http://')) + event['headers'].get('Host', event['headers'].get('host', 'localhost')) + event.get('path', '/')
+            
+            if event.get('multiValueQueryStringParameters', {}):
+                uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True) 
+            elif event.get('queryStringParameters', {}):
+                uri = uri + '?' + urlencode(event['queryStringParameters']) 
+            return uri
+
+        def process_body(self, body_wrapper):
+            """Function to process body"""
+            if not (self.LOG_BODY and body_wrapper.get('body')):
+                return None, 'json'
+
+            body = None
+            transfer_encoding = None
             try:
-                if 'isBase64Encoded' in raw_response_body and 'body' in raw_response_body and raw_response_body['isBase64Encoded'] and raw_response_body['body']:
-                    resp_body = raw_response_body['body']
-                    resp_transfer_encoding = 'base64'
+                if body_wrapper.get('isBase64Encoded', False):
+                    body = body_wrapper.get('body')
+                    transfer_encoding = 'base64'
                 else:
-                    if 'body' in raw_response_body and raw_response_body['body'] and isinstance(raw_response_body['body'], str):
-                        resp_body = json.loads(raw_response_body['body'])
+                    if isinstance(body_wrapper['body'], str):
+                        body = json.loads(body_wrapper.get('body'))
                     else:
-                        resp_body = raw_response_body['body']
-                    resp_transfer_encoding = 'json'
+                        body = body_wrapper.get('body')
+                    transfer_encoding = 'json'
             except Exception as e:
-                if self.DEBUG:
-                    print('Error while parsing response body')
-                    print(e)
-            return resp_body, resp_transfer_encoding
+                body = base64.b64encode(body_wrapper['body'].encode("utf-8"))
+                return str(encodedBytes, "utf-8"), 'json'
+            return body, transfer_encoding
 
         def before(self, event, context):
             """This function runs before the handler is invoked, is passed the event & context and must return an event & context too."""
+
+            # Request Method
+            request_verb = event.get('httpMethod')
+            if request_verb is None:
+                print('MOESIF: [before] AWS Lambda trigger must be a Load Balancer or API Gateway See https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html or https://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https.html.')
+                return event, context
+
             # Request headers
             req_headers = {}
             try:
@@ -116,36 +122,18 @@ def MoesifLogger(moesif_options):
                     req_headers = APIHelper.json_deserialize(event['headers'])
             except Exception as e:
                 if self.DEBUG:
-                    print('Error while fetching request headers')
+                    print('MOESIF Error while fetching request headers')
                     print(e)
 
             # Request Time
-            request_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-            
-            # Request URI
-            try:
-                request_uri = event['headers']['X-Forwarded-Proto'] + '://' + event['headers']['Host'] + event['path'] + '?' + urlencode(event['queryStringParameters'])
-            except:
-                request_uri = '/'
-            
-            # Request Method
-            try:
-                request_verb = event['httpMethod']
-            except:
-                if self.DEBUG:
-                    print('Request method should not be empty.')
+            epoch = event and event.get('request_context', {}).get('requestTimeEpoch')
+            if epoch is not None: 
+                request_time =datetime.utcfromtimestamp(epoch)
+            else:
+                request_time = self.start_time
             
             # Request Body
-            req_body = None
-            req_transfer_encoding = None
-            try:
-                if self.LOG_BODY and 'body' in event:
-                    if event['body']:
-                        req_body, req_transfer_encoding = self.process_request_body(event)
-            except Exception as e:
-                if self.DEBUG:
-                    print('Error while fetching request body')
-                    print(e)
+            req_body, req_transfer_encoding = self.process_body(event)
             
             # Metadata
             try:
@@ -158,14 +146,15 @@ def MoesifLogger(moesif_options):
                             self.metadata = {
                                 'trace_id': str(context.aws_request_id),
                                 'function_name': context.function_name,
-                                'request_context': event['requestContext']
+                                'request_context': event['requestContext'],
+                                'context': context
                             }
                     except:
                         if self.DEBUG:
-                            print("can not fetch default function_name and request_context from aws context, setting metadata to None.")
+                            print("MOESIF can not fetch default function_name and request_context from aws context, setting metadata to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("can not execute GET_METADATA function, please check moesif settings.")
+                    print("MOESIF can not execute GET_METADATA function, please check moesif settings.")
                     print(e)
             
             # User Id
@@ -187,10 +176,10 @@ def MoesifLogger(moesif_options):
                                 self.session_token = rc_api_key
                     except KeyError:
                         if self.DEBUG:
-                            print("can not fetch apiKey from aws event, setting session_token to None.")
+                            print("MOESIF can not fetch apiKey from aws event, setting session_token to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("can not execute GET_SESSION_TOKEN function, please check moesif settings.")
+                    print("MOESIF can not execute GET_SESSION_TOKEN function, please check moesif settings.")
                     print(e)
 
             # Api Version
@@ -205,28 +194,21 @@ def MoesifLogger(moesif_options):
                             api_version = context.function_version
                     except KeyError:
                         if self.DEBUG:
-                            print("can not fetch default function_version from aws context, setting api_version to None.")
+                            print("MOESIF can not fetch default function_version from aws context, setting api_version to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("can not execute GET_API_VERSION function, please check moesif settings.")
+                    print("MOESIF can not execute GET_API_VERSION function, please check moesif settings.")
                     print(e)
             
             # IpAddress
-            ip_address = None
-            try:
-                if 'headers' in event and 'requestContext' in event and 'identity' in event['requestContext'] and 'sourceIp' in event['requestContext']['identity'] and event['requestContext']['identity']['sourceIp']:
-                    ip_address = self.client_ip.get_client_address(event['headers'], event['requestContext']['identity']['sourceIp'])
-            except Exception as e:
-                if self.DEBUG:
-                    print("Error while fetching Client Ip address, setting Request Ip address to None.")
-                    print(e)
+            ip_address = event.get('requestContext', {}).get('identity', {}).get('sourceIp', None)
 
             # Event Request Object
-            self.event_req = EventRequestModel(time = request_time,
-                uri = request_uri,
+            self.event_req = EventRequestModel(time = request_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+                uri = self.build_uri(event),
                 verb = request_verb,
                 api_version = api_version,
-                ip_address = ip_address,
+                ip_address = self.client_ip.get_client_address(event['headers'], ip_address),
                 headers = req_headers,
                 body = req_body,
                 transfer_encoding = req_transfer_encoding)
@@ -234,45 +216,19 @@ def MoesifLogger(moesif_options):
             # Set/Save event and context for use Skip Event function
             self.event = event
             self.context = context
-            
+
             # Return event, context
             return event, context
         
         def after(self, retval):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
             # Response body
-            resp_body = None
-            resp_transfer_encoding = None
-            try:
-                if self.LOG_BODY and 'body' in retval:
-                    if retval['body']:
-                        resp_body, resp_transfer_encoding = self.process_response_body(retval)
-            except Exception as e:
-                if self.DEBUG:
-                    print('Error while fetching response body')
-                    print(e)
-
-            # Response headers
-            resp_headers = {}
-            try:
-                if 'headers' in retval:
-                    resp_headers = retval['headers']
-            except Exception as e:
-                if self.DEBUG:
-                    print('Error while fetching response headers')
-                    print(e)
-
-            # Response status code
-            try:
-                status_code = retval['statusCode']
-            except:
-                if self.DEBUG:
-                    print('Response status code should not be empty')
+            resp_body, resp_transfer_encoding = self.process_body(retval)
 
             # Event Response object
             event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
-                status = status_code,
-                headers = resp_headers,
+                status = retval.get('statusCode', 599),
+                headers = retval.get('headers', {}),
                 body = resp_body,
                 transfer_encoding = resp_transfer_encoding)
 
@@ -291,7 +247,7 @@ def MoesifLogger(moesif_options):
                     event_model = mask_event_model(event_model)
             except:
                 if self.DEBUG:
-                    print("Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
+                    print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
 
             # Skip Event
             try:
@@ -299,16 +255,20 @@ def MoesifLogger(moesif_options):
                 if skip_event is not None:
                     if skip_event(self.event, self.context):
                         if self.DEBUG:
-                            print('Skip sending event to Moesif')
+                            print('MOESIF Skip sending event to Moesif')
                         return retval
             except:
                 if self.DEBUG:
-                    print("Having difficulty executing skip_event function. Please check moesif settings.")
+                    print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.")
 
             # Send event to Moesif
+            if self.DEBUG:
+                print('Moesif Event Model:')
+                pprint(self.event)
+            
             event_send = self.api_client.create_event(event_model)
             if self.DEBUG:
-                print('Event Sent successfully')
+                print('MOESIF ' + str(event_send))
             
             # Send response
             return retval
