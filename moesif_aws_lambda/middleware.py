@@ -76,7 +76,7 @@ def MoesifLogger(moesif_options):
         
         def build_uri(self, event):
 
-            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http://')) + event['headers'].get('Host', event['headers'].get('host', 'localhost')) + event.get('path', '/')
+            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost')) + event.get('path', '/')
             
             if event.get('multiValueQueryStringParameters', {}):
                 uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True) 
@@ -260,6 +260,9 @@ def MoesifLogger(moesif_options):
             except:
                 if self.DEBUG:
                     print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.")
+
+            # Add direction field
+            event_model.direction = "Incoming"
 
             # Send event to Moesif
             if self.DEBUG:
