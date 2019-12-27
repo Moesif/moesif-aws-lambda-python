@@ -204,7 +204,7 @@ def mask_event(eventmodel):
 
 Type: `Boolean`
 
-Set to true to print debug logs if you're having integegration issues. 
+Set to true to print debug logs if you're having integration issues. 
 
 #### __`LOG_BODY`__
 
