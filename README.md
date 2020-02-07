@@ -21,48 +21,13 @@ pip install moesif_aws_lambda
 
 ## How to use
 
-The following shows how import the module and use:
-
-### 1. Import the module:
+### 1. Add middleware to your Lambda application.
 
 ```python
 from moesif_aws_lambda.middleware import MoesifLogger
-import os
-
-# Moesif Application Id
-os.environ["MOESIF_APPLICATION_ID"] = "Your Moesif Application Id"
-
-def identify_user(event, context):
-    return 'my_user_id'
-
-def identify_company(event, context):
-    return 'my_company_id'
-
-def get_api_version(event, context):
-    return '1.0.0'
-
-def get_session_token(event, context):
-    return '23jdf0owekfmcn4u3qypxg09w4d8ayrcdx8nu2ng]s98y18cx98q3yhwmnhcfx43f'
-
-def get_metadata(event, context):
-    return { 'foo' : 'aws lambda', 'bar' : 'aws lambda metadata', }
-
-def mask_event(eventmodel):
-    return eventmodel
-
-def should_skip(event, context):
-    return "/" in event['path']
 
 moesif_options = {
-    'GET_METADATA': get_metadata,
-    'IDENTIFY_USER': identify_user,
-    'IDENTIFY_COMPANY': identify_company,
-    'GET_SESSION_TOKEN': get_session_token,
-    'GET_API_VERSION': get_api_version,
-    'MASK_EVENT_MODEL': mask_event,
-    'SKIP': should_skip,
-    'LOG_BODY': True,
-    'DEBUG': True
+    'LOG_BODY': True
 }
 
 @MoesifLogger(moesif_options)
@@ -79,8 +44,10 @@ def lambda_handler(event, context):
     }
 ```
 
-### 2. Enter Moesif Application Id
-Your Moesif Application Id can be found in the [_Moesif Portal_](https://www.moesif.com/).
+### 2. Set MOESIF_APPLICATION_ID environment variable 
+
+Add a new environment variable with the name `MOESIF_APPLICATION_ID` and the value being your Moesif application id,
+which can be found in the [_Moesif Portal_](https://www.moesif.com/).
 After signing up for a Moesif account, your Moesif Application Id will be displayed during the onboarding steps. 
 
 You can always find your Moesif Application Id at any time by logging 
@@ -124,7 +91,7 @@ individual customers and the companies their a part of.
 ```python
 def identify_company(event, context):
   # your code here, must return a string
-  return 'my_company_id'
+  return '7890'
 }
 ```
 
@@ -139,7 +106,7 @@ session token (i.e. such as an API key).
 ```python
 def get_session_token(event, context):
     # your code here, must return a string.
-    return '23jdf0owekfmcn4u3qypxg09w4d8ayrcdx8nu2ng]s98y18cx98q3yhwmnhcfx43f'
+    return 'XXXXXXXXX'
 ```
 
 #### __`GET_API_VERSION`__
