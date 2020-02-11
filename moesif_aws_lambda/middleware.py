@@ -5,6 +5,8 @@ from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from .client_ip import ClientIp
+from .update_companies import Company
+from .update_users import User
 from datetime import *
 import base64
 import json
@@ -15,6 +17,25 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
+
+# Initialized the client
+if os.environ["MOESIF_APPLICATION_ID"]:
+    api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
+else:
+    raise Exception('Moesif Application ID is required in settings')
+
+def update_user(user_profile, moesif_options):
+    User().update_user(user_profile, api_client, moesif_options)
+
+def update_users_batch(user_profiles, moesif_options):
+    User().update_users_batch(user_profiles, api_client, moesif_options)
+
+def update_company(company_profile, moesif_options):
+    Company().update_company(company_profile, api_client, moesif_options)
+
+def update_companies_batch(companies_profiles, moesif_options):
+    Company().update_companies_batch(companies_profiles, api_client, moesif_options)
+
 
 def MoesifLogger(moesif_options):
     class log_data(LambdaDecorator):
@@ -267,7 +288,7 @@ def MoesifLogger(moesif_options):
             # Send event to Moesif
             if self.DEBUG:
                 print('Moesif Event Model:')
-                pprint(self.event)
+                print(json.dumps(self.event))
             
             event_send = self.api_client.create_event(event_model)
             if self.DEBUG:

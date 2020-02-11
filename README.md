@@ -179,6 +179,190 @@ Type: `Boolean`
 
 `LOG_BODY` is default to true, set to false to remove logging request and response body to Moesif.
 
+## Update User
+
+### Update A Single User
+Create or update a user profile in Moesif.
+The metadata field can be any customer demographic or other info you want to store.
+Only the `user_id` field is required.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-user).
+
+```python
+from moesif_aws_lambda.middleware import *
+
+moesif_options = {
+    'LOG_BODY': True,
+    'DEBUG': True,
+}
+
+# Only user_id is required.
+# Campaign object is optional, but useful if you want to track ROI of acquisition channels
+# See https://www.moesif.com/docs/api#users for campaign schema
+# metadata can be any custom object
+user = {
+  'user_id': '12345',
+  'company_id': '67890', # If set, associate user with a company object
+  'campaign': {
+    'utm_source': 'google',
+    'utm_medium': 'cpc',
+    'utm_campaign': 'adwords',
+    'utm_term': 'api+tooling',
+    'utm_content': 'landing'
+  },
+  'metadata': {
+    'email': 'john@acmeinc.com',
+    'first_name': 'John',
+    'last_name': 'Doe',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 24000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+
+update_user(user, moesif_options)
+```
+
+### Update Users in Batch
+Similar to update_user, but used to update a list of users in one batch.
+Only the `user_id` field is required.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-users-in-batch).
+
+```python
+from moesif_aws_lambda.middleware import *
+
+moesif_options = {
+    'LOG_BODY': True,
+    'DEBUG': True,
+}
+
+userA = {
+  'user_id': '12345',
+  'company_id': '67890', # If set, associate user with a company object
+  'metadata': {
+    'email': 'john@acmeinc.com',
+    'first_name': 'John',
+    'last_name': 'Doe',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 24000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+
+userB = {
+  'user_id': '54321',
+  'company_id': '67890', # If set, associate user with a company object
+  'metadata': {
+    'email': 'mary@acmeinc.com',
+    'first_name': 'Mary',
+    'last_name': 'Jane',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 48000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+update_users_batch([userA, userB], moesif_options)
+```
+
+## Update Company
+
+### Update A Single Company
+Create or update a company profile in Moesif.
+The metadata field can be any company demographic or other info you want to store.
+Only the `company_id` field is required.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-company).
+
+```python
+from moesif_aws_lambda.middleware import *
+
+moesif_options = {
+    'LOG_BODY': True,
+    'DEBUG': True,
+}
+
+# Only company_id is required.
+# Campaign object is optional, but useful if you want to track ROI of acquisition channels
+# See https://www.moesif.com/docs/api#update-a-company for campaign schema
+# metadata can be any custom object
+company = {
+  'company_id': '67890',
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info
+  'campaign': {
+    'utm_source': 'google',
+    'utm_medium': 'cpc',
+    'utm_campaign': 'adwords',
+    'utm_term': 'api+tooling',
+    'utm_content': 'landing'
+  },
+  'metadata': {
+    'org_name': 'Acme, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 24000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 47
+    },
+  }
+}
+
+update_company(company, moesif_options)
+```
+
+### Update Companies in Batch
+Similar to update_company, but used to update a list of companies in one batch.
+Only the `company_id` field is required.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-companies-in-batch).
+
+```python
+from moesif_aws_lambda.middleware import *
+
+moesif_options = {
+    'LOG_BODY': True,
+    'DEBUG': True,
+}
+
+companyA = {
+  'company_id': '67890',
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info
+  'metadata': {
+    'org_name': 'Acme, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 24000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 47
+    },
+  }
+}
+
+companyB = {
+  'company_id': '09876',
+  'company_domain': 'contoso.com', # If domain is set, Moesif will enrich your profiles with publicly available info
+  'metadata': {
+    'org_name': 'Contoso, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 48000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 53
+    },
+  }
+}
+
+update_companies_batch([companyA, companyB], moesif_options)
+```
+
 ## Examples
 
 - [A complete example is available on GitHub](https://github.com/Moesif/moesif-aws-lambda-python-example).
