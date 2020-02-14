@@ -132,8 +132,13 @@ def MoesifLogger(moesif_options):
                         body = body_wrapper.get('body')
                     transfer_encoding = 'json'
             except Exception as e:
-                body = base64.b64encode(body_wrapper['body'].encode("utf-8"))
-                return str(encodedBytes, "utf-8"), 'json'
+                body = base64.b64encode(str(body_wrapper['body']).encode("utf-8"))
+                if isinstance(body, str):
+                    return str(body).encode("utf-8"), 'base64'
+                elif isinstance(body, (bytes, bytearray)):
+                    return str(body, "utf-8"), 'base64'
+                else:
+                    return str(body), 'base64'
             return body, transfer_encoding
 
         def before(self, event, context):
