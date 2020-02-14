@@ -5,6 +5,8 @@ from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from .client_ip import ClientIp
+from .update_companies import Company
+from .update_users import User
 from datetime import *
 import base64
 import json
@@ -15,6 +17,25 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
+
+# Initialized the client
+if os.environ["MOESIF_APPLICATION_ID"]:
+    api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
+else:
+    raise Exception('Moesif Application ID is required in settings')
+
+def update_user(user_profile, moesif_options):
+    User().update_user(user_profile, api_client, moesif_options)
+
+def update_users_batch(user_profiles, moesif_options):
+    User().update_users_batch(user_profiles, api_client, moesif_options)
+
+def update_company(company_profile, moesif_options):
+    Company().update_company(company_profile, api_client, moesif_options)
+
+def update_companies_batch(companies_profiles, moesif_options):
+    Company().update_companies_batch(companies_profiles, api_client, moesif_options)
+
 
 def MoesifLogger(moesif_options):
     class log_data(LambdaDecorator):
@@ -31,13 +52,22 @@ def MoesifLogger(moesif_options):
             self.DEBUG = self.moesif_options.get('DEBUG', False)
             self.event = None
             self.context = None
-            self.start_time = datetime.utcnow()
             
             # Intialized the client
             if os.environ.get("MOESIF_APPLICATION_ID"):
                 self.api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
             else:
                 raise Exception('Moesif Application ID is required in settings')
+
+        def clear_state(self):
+            """Function to clear state of local variable"""
+            self.event = None
+            self.context = None
+            self.event_req = None
+            self.metadata = None
+            self.session_token = None
+            self.user_id = None
+            self.company_id = None
 
         def get_user_id(self, event, context):
             """Function to fetch UserId"""
@@ -109,10 +139,19 @@ def MoesifLogger(moesif_options):
         def before(self, event, context):
             """This function runs before the handler is invoked, is passed the event & context and must return an event & context too."""
 
+            # Clear the state of the local variables
+            self.clear_state()
+
+            # Set/Save event and context for use Skip Event function
+            self.event = event
+            self.context = context
+
             # Request Method
             request_verb = event.get('httpMethod')
             if request_verb is None:
                 print('MOESIF: [before] AWS Lambda trigger must be a Load Balancer or API Gateway See https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html or https://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https.html.')
+                self.event = None
+                self.context = None
                 return event, context
 
             # Request headers
@@ -128,9 +167,9 @@ def MoesifLogger(moesif_options):
             # Request Time
             epoch = event and event.get('request_context', {}).get('requestTimeEpoch')
             if epoch is not None: 
-                request_time =datetime.utcfromtimestamp(epoch)
+                request_time = datetime.utcfromtimestamp(epoch)
             else:
-                request_time = self.start_time
+                request_time = datetime.utcnow()
             
             # Request Body
             req_body, req_transfer_encoding = self.process_body(event)
@@ -213,66 +252,64 @@ def MoesifLogger(moesif_options):
                 body = req_body,
                 transfer_encoding = req_transfer_encoding)
 
-            # Set/Save event and context for use Skip Event function
-            self.event = event
-            self.context = context
-
             # Return event, context
             return event, context
         
         def after(self, retval):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
-            # Response body
-            resp_body, resp_transfer_encoding = self.process_body(retval)
-
-            # Event Response object
-            event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
-                status = retval.get('statusCode', 599),
-                headers = retval.get('headers', {}),
-                body = resp_body,
-                transfer_encoding = resp_transfer_encoding)
-
-            # Event object
-            event_model = EventModel(request = self.event_req,
-                response = event_rsp,
-                user_id = self.user_id,
-                company_id = self.company_id,
-                session_token = self.session_token,
-                metadata = self.metadata)
             
-            # Mask Event Model
-            try:
-                mask_event_model = self.moesif_options.get('MASK_EVENT_MODEL', None)
-                if mask_event_model is not None:
-                    event_model = mask_event_model(event_model)
-            except:
+            if self.event is not None:
+                # Response body
+                resp_body, resp_transfer_encoding = self.process_body(retval)
+
+                # Event Response object
+                event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+                    status = retval.get('statusCode', 599),
+                    headers = retval.get('headers', {}),
+                    body = resp_body,
+                    transfer_encoding = resp_transfer_encoding)
+
+                # Event object
+                event_model = EventModel(request = self.event_req,
+                    response = event_rsp,
+                    user_id = self.user_id,
+                    company_id = self.company_id,
+                    session_token = self.session_token,
+                    metadata = self.metadata)
+                
+                # Mask Event Model
+                try:
+                    mask_event_model = self.moesif_options.get('MASK_EVENT_MODEL', None)
+                    if mask_event_model is not None:
+                        event_model = mask_event_model(event_model)
+                except:
+                    if self.DEBUG:
+                        print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
+
+                # Skip Event
+                try:
+                    skip_event = self.moesif_options.get('SKIP', None)
+                    if skip_event is not None:
+                        if skip_event(self.event, self.context):
+                            if self.DEBUG:
+                                print('MOESIF Skip sending event to Moesif')
+                            return retval
+                except:
+                    if self.DEBUG:
+                        print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.")
+
+                # Add direction field
+                event_model.direction = "Incoming"
+
+                # Send event to Moesif
                 if self.DEBUG:
-                    print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
-
-            # Skip Event
-            try:
-                skip_event = self.moesif_options.get('SKIP', None)
-                if skip_event is not None:
-                    if skip_event(self.event, self.context):
-                        if self.DEBUG:
-                            print('MOESIF Skip sending event to Moesif')
-                        return retval
-            except:
+                    print('Moesif Event Model:')
+                    print(json.dumps(self.event))
+                
+                event_send = self.api_client.create_event(event_model)
                 if self.DEBUG:
-                    print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.")
+                    print('MOESIF ' + str(event_send))
 
-            # Add direction field
-            event_model.direction = "Incoming"
-
-            # Send event to Moesif
-            if self.DEBUG:
-                print('Moesif Event Model:')
-                pprint(self.event)
-            
-            event_send = self.api_client.create_event(event_model)
-            if self.DEBUG:
-                print('MOESIF ' + str(event_send))
-            
             # Send response
             return retval
 
