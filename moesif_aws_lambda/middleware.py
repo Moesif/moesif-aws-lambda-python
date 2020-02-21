@@ -17,6 +17,18 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
+from moesifpythonrequest.start_capture.start_capture import StartCapture
+
+def start_capture_outgoing(moesif_options):
+    try:
+        if moesif_options.get('DEBUG', False):
+            print('Start capturing outgoing requests')
+        # Start capturing outgoing requests
+        moesif_options['APPLICATION_ID'] = os.environ["MOESIF_APPLICATION_ID"]
+        StartCapture().start_capture_outgoing(moesif_options)
+    except Exception as e:
+        print('Error while starting to capture the outgoing events')
+        print(e)
 
 # Initialized the client
 if os.environ["MOESIF_APPLICATION_ID"]:
