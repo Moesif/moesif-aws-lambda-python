@@ -59,9 +59,19 @@ into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu
 - `moesif_aws_lambda/middleware.py` the middleware library
 - `lambda_function.py` sample AWS Lambda function using the middleware
 
+## Optional: Capturing outgoing API calls
+If you want to capture all outgoing API calls from your Python Lambda function to third parties like
+Stripe or to your own dependencies, call `start_capture_outgoing()` to start capturing. This mechanism works by 
+patching the [Requests](http://docs.python-requests.org/en/master/) 
+
+```python
+from moesif_aws_lambda.middleware import *
+start_capture_outgoing(moesif_options) # moesif_options are the configuration options.
+```
+
 ## Configuration options
 
-#### __`IDENTIFY_USER`__
+### __`IDENTIFY_USER`__
 
 Type: `(event, context) => String`
 
@@ -77,7 +87,7 @@ def identify_user(event, context):
   return event["requestContext"]["identity"]["cognitoIdentityId"]
 ```
 
-#### __`IDENTIFY_COMPANY`__
+### __`IDENTIFY_COMPANY`__
 
 Type: `(event, context) => String`
 
@@ -95,7 +105,7 @@ def identify_company(event, context):
 }
 ```
 
-#### __`GET_SESSION_TOKEN`__
+### __`GET_SESSION_TOKEN`__
 
 Type: `(event, context) => String`
 
@@ -109,7 +119,7 @@ def get_session_token(event, context):
     return 'XXXXXXXXX'
 ```
 
-#### __`GET_API_VERSION`__
+### __`GET_API_VERSION`__
 
 Type: `(event, context) => String`
 
@@ -123,7 +133,7 @@ def get_api_version(event, context):
   return '1.0.0'
 ```
 
-#### __`GET_METADATA`__
+### __`GET_METADATA`__
 
 Type: `(event, context) => String`
 
@@ -140,7 +150,7 @@ def get_metadata(event, context):
     }
 ```
 
-#### __`SKIP`__
+### __`SKIP`__
 
 Type: `(event, context) => Boolean`
 
@@ -155,7 +165,7 @@ def should_skip(event, context):
     return "/" in event['path']
 ```
 
-#### __`MASK_EVENT_MODEL`__
+### __`MASK_EVENT_MODEL`__
 
 Type: `MoesifEventModel => MoesifEventModel`
 
@@ -167,47 +177,42 @@ def mask_event(eventmodel):
   return eventmodel
  ```
 
-#### __`DEBUG`__
+### __`DEBUG`__
 
 Type: `Boolean`
 
 Set to true to print debug logs if you're having integration issues. 
 
-#### __`LOG_BODY`__
+### __`LOG_BODY`__
 
 Type: `Boolean`
 
 `LOG_BODY` is default to true, set to false to remove logging request and response body to Moesif.
 
-#### __`CAPTURE_OUTGOING_REQUESTS`__
-Capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies while using [Requests](http://docs.python-requests.org/en/master/) library. The options below is applied to outgoing API calls.
-When the request is outgoing, for options functions that take request and response as input arguments, the request and response objects passed in are [Requests](http://docs.python-requests.org/en/master/api/) request or response objects.
+## Options for logging outgoing calls
 
-```python
-from moesif_aws_lambda.middleware import *
-start_capture_outgoing(moesif_options) # moesif_options are the configuration options.
-```
+The options below are applied to outgoing API calls. The request and response objects passed in are  [Requests](http://docs.python-requests.org/en/master/api/) request and [Response](https://golang.org/src/net/http/response.go) response objects.
 
-##### __`SKIP_OUTGOING`__
+### __`SKIP_OUTGOING`__
 (optional) _(req, res) => boolean_, a function that takes a [Requests](http://docs.python-requests.org/en/master/api/) request and response,
 and returns true if you want to skip this particular event.
 
-##### __`IDENTIFY_USER_OUTGOING`__
+### __`IDENTIFY_USER_OUTGOING`__
 (optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
 but different frameworks and your implementation might be very different, it would be helpful and much more accurate to provide this function.
 
-##### __`IDENTIFY_COMPANY_OUTGOING`__
+### __`IDENTIFY_COMPANY_OUTGOING`__
 (optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the company id for this event.
 
-##### __`GET_METADATA_OUTGOING`__
+### __`GET_METADATA_OUTGOING`__
 (optional) _(req, res) => dictionary_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and
 returns a dictionary (must be able to be encoded into JSON). This allows
 to associate this event with custom metadata. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
 
-##### __`GET_SESSION_TOKEN_OUTGOING`__
+### __`GET_SESSION_TOKEN_OUTGOING`__
 (optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
-##### __`LOG_BODY_OUTGOING`__
+### __`LOG_BODY_OUTGOING`__
 (optional) _boolean_, default True, Set to False to remove logging request and response body.
 
 ## Update User
