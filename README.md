@@ -62,7 +62,7 @@ into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu
 ## Optional: Capturing outgoing API calls
 If you want to capture all outgoing API calls from your Python Lambda function to third parties like
 Stripe or to your own dependencies, call `start_capture_outgoing()` to start capturing. This mechanism works by 
-patching the [Requests](http://docs.python-requests.org/en/master/) 
+patching the [Requests](https://requests.readthedocs.io/en/master/) 
 
 ```python
 from moesif_aws_lambda.middleware import *
@@ -191,26 +191,26 @@ Type: `Boolean`
 
 ## Options for logging outgoing calls
 
-The options below are applied to outgoing API calls. The request and response objects passed in are  [Requests](http://docs.python-requests.org/en/master/api/) request and [Response](https://golang.org/src/net/http/response.go) response objects.
+The options below are applied to outgoing API calls. The request and response objects passed in are  [Requests](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) request and [Response](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) response objects.
 
 ### __`SKIP_OUTGOING`__
-(optional) _(req, res) => boolean_, a function that takes a [Requests](http://docs.python-requests.org/en/master/api/) request and response,
+(optional) _(req, res) => boolean_, a function that takes a [Requests](https://requests.readthedocs.io/en/master/) request and response,
 and returns true if you want to skip this particular event.
 
 ### __`IDENTIFY_USER_OUTGOING`__
-(optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
+(optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
 but different frameworks and your implementation might be very different, it would be helpful and much more accurate to provide this function.
 
 ### __`IDENTIFY_COMPANY_OUTGOING`__
-(optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the company id for this event.
+(optional) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the company id for this event.
 
 ### __`GET_METADATA_OUTGOING`__
-(optional) _(req, res) => dictionary_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and
+(optional) _(req, res) => dictionary_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and
 returns a dictionary (must be able to be encoded into JSON). This allows
 to associate this event with custom metadata. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
 
 ### __`GET_SESSION_TOKEN_OUTGOING`__
-(optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
+(optional) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
 ### __`LOG_BODY_OUTGOING`__
 (optional) _boolean_, default True, Set to False to remove logging request and response body.
