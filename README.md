@@ -7,7 +7,8 @@
 Middleware (Python) to automatically log API calls from AWS Lambda functions
 and sends to [Moesif](https://www.moesif.com) for API analytics and log analysis. 
 
-Designed for APIs that are hosted on AWS Lambda using Amazon API Gateway as a trigger.
+Designed for APIs that are hosted on AWS Lambda using Amazon API Gateway or Application Load Balancer
+as a trigger.
 
 This middleware expects the
 [Lambda proxy integration type.](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-set-up-lambda-proxy-integration-on-proxy-resource)
