@@ -64,6 +64,7 @@ def MoesifLogger(moesif_options):
             self.DEBUG = self.moesif_options.get('DEBUG', False)
             self.event = None
             self.context = None
+            self.payload_version = None
             
             # Intialized the client
             if os.environ.get("MOESIF_APPLICATION_ID"):
@@ -75,11 +76,16 @@ def MoesifLogger(moesif_options):
             """Function to clear state of local variable"""
             self.event = None
             self.context = None
+            self.payload_version = None
             self.event_req = None
             self.metadata = None
             self.session_token = None
             self.user_id = None
             self.company_id = None
+
+        def is_payload_format_version_1_0(cls, payload_format_version):
+            """Function to check if the payload format version is 1.0 (old) or 2.0 (new) """
+            return payload_format_version == "1.0"
 
         def get_user_id(self, event, context):
             """Function to fetch UserId"""
@@ -116,14 +122,20 @@ def MoesifLogger(moesif_options):
                     print(e)
             return company_id
         
-        def build_uri(self, event):
+        def build_uri(self, event, payload_format_version_1_0):
 
-            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost')) + event.get('path', '/')
+            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost')) 
             
-            if event.get('multiValueQueryStringParameters', {}):
-                uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True) 
-            elif event.get('queryStringParameters', {}):
-                uri = uri + '?' + urlencode(event['queryStringParameters']) 
+            if payload_format_version_1_0:
+                uri = uri + event.get('path', '/')
+                if event.get('multiValueQueryStringParameters', {}):
+                    uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True) 
+                elif event.get('queryStringParameters', {}):
+                    uri = uri + '?' + urlencode(event['queryStringParameters']) 
+            else:
+                uri = uri + event.get('rawPath', '/')
+                if event.get('rawQueryString', {}):
+                    uri = uri + '?' + event['rawQueryString']
             return uri
 
         def process_body(self, body_wrapper):
@@ -159,16 +171,24 @@ def MoesifLogger(moesif_options):
             # Clear the state of the local variables
             self.clear_state()
 
+            # Get the payload format version
+            # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+            self.payload_version = event.get('version', '1.0')
+
             # Set/Save event and context for use Skip Event function
             self.event = event
             self.context = context
 
             # Request Method
-            request_verb = event.get('httpMethod')
+            if self.is_payload_format_version_1_0(self.payload_version):
+                request_verb = event.get('httpMethod')
+            else:
+                request_verb = event.get('requestContext', {}).get('http', {}).get('method')
             if request_verb is None:
                 print('MOESIF: [before] AWS Lambda trigger must be a Load Balancer or API Gateway See https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html or https://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https.html.')
                 self.event = None
                 self.context = None
+                self.payload_version = None
                 return event, context
 
             # Request headers
@@ -182,9 +202,13 @@ def MoesifLogger(moesif_options):
                     print(e)
 
             # Request Time
-            epoch = event and event.get('request_context', {}).get('requestTimeEpoch')
+            if self.is_payload_format_version_1_0(self.payload_version):
+                epoch = event and event.get('requestContext', {}).get('requestTimeEpoch')
+            else:
+                epoch = event and  event.get('requestContext', {}).get('timeEpoch')
             if epoch is not None: 
-                request_time = datetime.utcfromtimestamp(epoch)
+                # Dividing by 1000 to convert from ms to seconds and `.0` to preserve millisecond precision 
+                request_time = datetime.utcfromtimestamp(epoch/1000.0)
             else:
                 request_time = datetime.utcnow()
             
@@ -257,11 +281,14 @@ def MoesifLogger(moesif_options):
                     print(e)
             
             # IpAddress
-            ip_address = event.get('requestContext', {}).get('identity', {}).get('sourceIp', None)
+            if self.is_payload_format_version_1_0(self.payload_version):
+                ip_address = event.get('requestContext', {}).get('identity', {}).get('sourceIp', None)
+            else:
+                ip_address = event.get('requestContext', {}).get('http', {}).get('sourceIp', None)
 
             # Event Request Object
             self.event_req = EventRequestModel(time = request_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
-                uri = self.build_uri(event),
+                uri = self.build_uri(event, self.is_payload_format_version_1_0(self.payload_version)),
                 verb = request_verb,
                 api_version = api_version,
                 ip_address = self.client_ip.get_client_address(event['headers'], ip_address),
