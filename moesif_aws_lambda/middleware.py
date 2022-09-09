@@ -138,9 +138,26 @@ def MoesifLogger(moesif_options):
                     uri = uri + '?' + event['rawQueryString']
             return uri
 
+        def base64_body(cls, data):
+            """Function to transfer body into base64 encoded"""
+            body = base64.b64encode(str(data).encode("utf-8"))
+            if isinstance(body, str):
+                return str(body).encode("utf-8"), 'base64'
+            elif isinstance(body, (bytes, bytearray)):
+                return str(body, "utf-8"), 'base64'
+            else:
+                return str(body), 'base64'
+
         def process_body(self, body_wrapper):
             """Function to process body"""
-            if not (self.LOG_BODY and body_wrapper.get('body')):
+
+            if self.LOG_BODY and isinstance(body_wrapper, dict) and 'body' not in body_wrapper:
+                return body_wrapper, 'json'
+
+            if self.LOG_BODY and not isinstance(body_wrapper, dict) and 'body' not in body_wrapper and isinstance(body_wrapper, str):
+                return self.base64_body(body_wrapper)
+
+            if not (self.LOG_BODY and isinstance(body_wrapper, dict) and body_wrapper.get('body')):
                 return None, 'json'
 
             body = None
@@ -156,13 +173,7 @@ def MoesifLogger(moesif_options):
                         body = body_wrapper.get('body')
                     transfer_encoding = 'json'
             except Exception as e:
-                body = base64.b64encode(str(body_wrapper['body']).encode("utf-8"))
-                if isinstance(body, str):
-                    return str(body).encode("utf-8"), 'base64'
-                elif isinstance(body, (bytes, bytearray)):
-                    return str(body, "utf-8"), 'base64'
-                else:
-                    return str(body), 'base64'
+                    return self.base64_body(body_wrapper['body'])
             return body, transfer_encoding
 
         def before(self, event, context):
@@ -308,8 +319,8 @@ def MoesifLogger(moesif_options):
 
                 # Event Response object
                 event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
-                    status = retval.get('statusCode', 599),
-                    headers = retval.get('headers', {}),
+                    status = retval.get('statusCode', 599) if 'statusCode' in retval else 200,
+                    headers = retval.get('headers', {}) if 'headers' in retval else {"content-type": "application/json" },
                     body = resp_body,
                     transfer_encoding = resp_transfer_encoding)
 

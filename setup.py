@@ -28,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.8',
+    version='1.0.9',
 
     description='Moesif Middleware to automatically log API calls from AWS Lambda functions',
     long_description=long_description,
@@ -84,7 +84,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['moesifapi', 'lambda_decorators', 'moesifpythonrequest'],
+    install_requires=['moesifapi>=1.4.0', 'lambda_decorators', 'moesifpythonrequest>=0.2.0'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
