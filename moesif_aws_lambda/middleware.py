@@ -268,10 +268,18 @@ def MoesifLogger(moesif_options):
                 print("[moesif] Time took in fetching metadata in millisecond - " + str(get_time_took_in_ms(start_time_get_metadata, end_time_get_metadata)))
             
             # User Id
+            start_time_identify_user = datetime.utcnow()
             self.user_id = self.get_user_id(event, context)
+            end_time_identify_user = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in identifying the user in millisecond - " + str(get_time_took_in_ms(start_time_identify_user, end_time_identify_user)))
 
             # Company Id
+            start_time_identify_company = datetime.utcnow()
             self.company_id = self.get_company_id(event, context)
+            end_time_identify_company = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in identifying the company in millisecond - " + str(get_time_took_in_ms(start_time_identify_company, end_time_identify_company)))
 
             # Session Token 
             try:
