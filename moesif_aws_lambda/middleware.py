@@ -18,6 +18,11 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 from moesifpythonrequest.start_capture.start_capture import StartCapture
+from datetime import datetime
+
+
+def get_time_took_in_ms(start_time, end_time):
+    return (end_time - start_time).total_seconds() * 1000
 
 def start_capture_outgoing(moesif_options):
     try:
@@ -89,6 +94,7 @@ def MoesifLogger(moesif_options):
 
         def get_user_id(self, event, context):
             """Function to fetch UserId"""
+            start_time_get_user_id = datetime.utcnow()
             username = None
             try:
                 identify_user = self.moesif_options.get("IDENTIFY_USER")
@@ -107,10 +113,14 @@ def MoesifLogger(moesif_options):
                 if self.DEBUG:
                     print("MOESIF can not execute identify_user function, please check moesif settings.")
                     print(e)
+            end_time_get_user_id = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in fetching user id in millisecond - " + str(get_time_took_in_ms(start_time_get_user_id, end_time_get_user_id)))
             return username
         
         def get_company_id(self, event, context):
             """Function to fetch CompanyId"""
+            start_time_get_company_id = datetime.utcnow()
             company_id = None
             try:
                 identify_company = self.moesif_options.get("IDENTIFY_COMPANY")
@@ -120,6 +130,9 @@ def MoesifLogger(moesif_options):
                 if self.DEBUG:
                     print("MOESIF can not execute identify_company function, please check moesif settings.")
                     print(e)
+            end_time_get_company_id = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in fetching company id in millisecond - " + str(get_time_took_in_ms(start_time_get_company_id, end_time_get_company_id)))
             return company_id
         
         def build_uri(self, event, payload_format_version_1_0):
@@ -179,6 +192,8 @@ def MoesifLogger(moesif_options):
         def before(self, event, context):
             """This function runs before the handler is invoked, is passed the event & context and must return an event & context too."""
 
+            start_time_before_handler_function = datetime.utcnow()
+
             # Clear the state of the local variables
             self.clear_state()
 
@@ -227,6 +242,7 @@ def MoesifLogger(moesif_options):
             req_body, req_transfer_encoding = self.process_body(event)
             
             # Metadata
+            start_time_get_metadata = datetime.utcnow()
             try:
                 get_meta = self.moesif_options.get("GET_METADATA")
                 if get_meta is not None:
@@ -247,12 +263,23 @@ def MoesifLogger(moesif_options):
                 if self.DEBUG:
                     print("MOESIF can not execute GET_METADATA function, please check moesif settings.")
                     print(e)
+            end_time_get_metadata = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in fetching metadata in millisecond - " + str(get_time_took_in_ms(start_time_get_metadata, end_time_get_metadata)))
             
             # User Id
+            start_time_identify_user = datetime.utcnow()
             self.user_id = self.get_user_id(event, context)
+            end_time_identify_user = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in identifying the user in millisecond - " + str(get_time_took_in_ms(start_time_identify_user, end_time_identify_user)))
 
             # Company Id
+            start_time_identify_company = datetime.utcnow()
             self.company_id = self.get_company_id(event, context)
+            end_time_identify_company = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took in identifying the company in millisecond - " + str(get_time_took_in_ms(start_time_identify_company, end_time_identify_company)))
 
             # Session Token 
             try:
@@ -307,12 +334,16 @@ def MoesifLogger(moesif_options):
                 body = req_body,
                 transfer_encoding = req_transfer_encoding)
 
+            end_time_before_handler_function = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took before the handler is invoked in millisecond - " + str(get_time_took_in_ms(start_time_before_handler_function, end_time_before_handler_function)))
             # Return event, context
             return event, context
         
         def after(self, retval):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
             
+            start_time_after_handler_function = datetime.utcnow()
             if self.event is not None:
                 # Response body
                 resp_body, resp_transfer_encoding = self.process_body(retval)
@@ -361,9 +392,19 @@ def MoesifLogger(moesif_options):
                     print('Moesif Event Model:')
                     print(json.dumps(self.event))
                 
-                event_send = self.api_client.create_event(event_model)
                 if self.DEBUG:
-                    print('MOESIF ' + str(event_send))
+                    start_time_sending_event_w_rsp = datetime.utcnow()
+                    event_send = self.api_client.create_event(event_model)
+                    end_time_sending_event_w_rsp = datetime.utcnow()
+                    if self.DEBUG:
+                        print("[moesif] Time took in sending event to moesif in millisecond - " + str(get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
+                        print('[moesif] Event Sent successfully ' + str(event_send))
+                else:
+                    self.api_client.create_event(event_model)
+                    
+            end_time_after_handler_function = datetime.utcnow()
+            if self.DEBUG:
+                print("[moesif] Time took after the handler is invoked in millisecond - " + str(get_time_took_in_ms(start_time_after_handler_function, end_time_after_handler_function)))
 
             # Send response
             return retval
