@@ -4,6 +4,7 @@ from moesifapi.moesif_api_client import *
 from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
+from .app_config import AppConfig
 from .client_ip import ClientIp
 from .update_companies import Company
 from .update_users import User
@@ -13,6 +14,10 @@ import json
 import os
 from pprint import pprint
 import base64
+
+import random
+import math
+
 try:
     from urllib import urlencode
 except ImportError:
@@ -70,12 +75,16 @@ def MoesifLogger(moesif_options):
             self.event = None
             self.context = None
             self.payload_version = None
-            
+            self.sampling_percentage = 100
+
             # Intialized the client
             if os.environ.get("MOESIF_APPLICATION_ID"):
                 self.api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
             else:
                 raise Exception('Moesif Application ID is required in settings')
+
+            self.app_config = AppConfig()
+            self.config = self.app_config.get_config(self.api_client, self.DEBUG)
 
         def clear_state(self):
             """Function to clear state of local variable"""
@@ -117,7 +126,7 @@ def MoesifLogger(moesif_options):
             if self.DEBUG:
                 print("[moesif] Time took in fetching user id in millisecond - " + str(get_time_took_in_ms(start_time_get_user_id, end_time_get_user_id)))
             return username
-        
+
         def get_company_id(self, event, context):
             """Function to fetch CompanyId"""
             start_time_get_company_id = datetime.utcnow()
@@ -134,17 +143,17 @@ def MoesifLogger(moesif_options):
             if self.DEBUG:
                 print("[moesif] Time took in fetching company id in millisecond - " + str(get_time_took_in_ms(start_time_get_company_id, end_time_get_company_id)))
             return company_id
-        
+
         def build_uri(self, event, payload_format_version_1_0):
 
-            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost')) 
-            
+            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost'))
+
             if payload_format_version_1_0:
                 uri = uri + event.get('path', '/')
                 if event.get('multiValueQueryStringParameters', {}):
-                    uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True) 
+                    uri = uri + '?' + urlencode(event['multiValueQueryStringParameters'], doseq=True)
                 elif event.get('queryStringParameters', {}):
-                    uri = uri + '?' + urlencode(event['queryStringParameters']) 
+                    uri = uri + '?' + urlencode(event['queryStringParameters'])
             else:
                 uri = uri + event.get('rawPath', '/')
                 if event.get('rawQueryString', {}):
@@ -232,15 +241,15 @@ def MoesifLogger(moesif_options):
                 epoch = event and event.get('requestContext', {}).get('requestTimeEpoch')
             else:
                 epoch = event and  event.get('requestContext', {}).get('timeEpoch')
-            if epoch is not None: 
+            if epoch is not None:
                 # Dividing by 1000 to convert from ms to seconds and `.0` to preserve millisecond precision 
                 request_time = datetime.utcfromtimestamp(epoch/1000.0)
             else:
                 request_time = datetime.utcnow()
-            
+
             # Request Body
             req_body, req_transfer_encoding = self.process_body(event)
-            
+
             # Metadata
             start_time_get_metadata = datetime.utcnow()
             try:
@@ -266,7 +275,7 @@ def MoesifLogger(moesif_options):
             end_time_get_metadata = datetime.utcnow()
             if self.DEBUG:
                 print("[moesif] Time took in fetching metadata in millisecond - " + str(get_time_took_in_ms(start_time_get_metadata, end_time_get_metadata)))
-            
+
             # User Id
             start_time_identify_user = datetime.utcnow()
             self.user_id = self.get_user_id(event, context)
@@ -317,7 +326,7 @@ def MoesifLogger(moesif_options):
                 if self.DEBUG:
                     print("MOESIF can not execute GET_API_VERSION function, please check moesif settings.")
                     print(e)
-            
+
             # IpAddress
             if self.is_payload_format_version_1_0(self.payload_version):
                 ip_address = event.get('requestContext', {}).get('identity', {}).get('sourceIp', None)
@@ -339,10 +348,10 @@ def MoesifLogger(moesif_options):
                 print("[moesif] Time took before the handler is invoked in millisecond - " + str(get_time_took_in_ms(start_time_before_handler_function, end_time_before_handler_function)))
             # Return event, context
             return event, context
-        
+
         def after(self, retval):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
-            
+
             start_time_after_handler_function = datetime.utcnow()
             if self.event is not None:
                 # Response body
@@ -362,7 +371,7 @@ def MoesifLogger(moesif_options):
                     company_id = self.company_id,
                     session_token = self.session_token,
                     metadata = self.metadata)
-                
+
                 # Mask Event Model
                 try:
                     mask_event_model = self.moesif_options.get('MASK_EVENT_MODEL', None)
@@ -391,17 +400,34 @@ def MoesifLogger(moesif_options):
                 if self.DEBUG:
                     print('Moesif Event Model:')
                     print(json.dumps(self.event))
-                
-                if self.DEBUG:
-                    start_time_sending_event_w_rsp = datetime.utcnow()
-                    event_send = self.api_client.create_event(event_model)
-                    end_time_sending_event_w_rsp = datetime.utcnow()
+
+                # Sampling Rate
+                random_percentage = random.random() * 100
+
+                self.sampling_percentage = self.app_config.get_sampling_percentage(event_model,
+                                                                                   self.config,
+                                                                                   self.user_id,
+                                                                                   self.company_id)
+
+                if self.sampling_percentage >= random_percentage:
+                    event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(
+                        100 / self.sampling_percentage)
+
                     if self.DEBUG:
-                        print("[moesif] Time took in sending event to moesif in millisecond - " + str(get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
-                        print('[moesif] Event Sent successfully ' + str(event_send))
+                        start_time_sending_event_w_rsp = datetime.utcnow()
+                        event_send = self.api_client.create_event(event_model)
+                        end_time_sending_event_w_rsp = datetime.utcnow()
+                        if self.DEBUG:
+                            print("[moesif] Time took in sending event to moesif in millisecond - " + str(
+                                get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
+                            print('[moesif] Event Sent successfully ' + str(event_send))
+                    else:
+                        self.api_client.create_event(event_model)
                 else:
-                    self.api_client.create_event(event_model)
-                    
+                    if self.DEBUG:
+                        print("Skipped Event due to sampling percentage: " + str(
+                            self.sampling_percentage) + " and random percentage: " + str(random_percentage))
+
             end_time_after_handler_function = datetime.utcnow()
             if self.DEBUG:
                 print("[moesif] Time took after the handler is invoked in millisecond - " + str(get_time_took_in_ms(start_time_after_handler_function, end_time_after_handler_function)))
