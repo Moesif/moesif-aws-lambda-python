@@ -355,6 +355,7 @@ def MoesifLogger(moesif_options):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
 
             start_time_after_handler_function = datetime.utcnow()
+            event_send = None
             if self.event is not None:
                 # Response body
                 resp_body, resp_transfer_encoding = self.process_body(retval)
@@ -439,7 +440,7 @@ def MoesifLogger(moesif_options):
                             if gv.config_etag is None or (gv.config_etag != new_config_etag):
                                 gv.config_etag = new_config_etag
                                 gv.config = gv.app_config.get_config(self.api_client, self.DEBUG)
-                        except (KeyError, ValueError) as ex:
+                        except (KeyError, TypeError, ValueError) as ex:
                             # ignore the error because "event_send" is not set in non-blocking call
                             pass
                         finally:
