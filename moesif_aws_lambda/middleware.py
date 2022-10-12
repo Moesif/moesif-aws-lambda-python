@@ -84,7 +84,6 @@ def MoesifLogger(moesif_options):
             self.event = None
             self.context = None
             self.payload_version = None
-            self.sampling_percentage = 100
 
             # Set the client
             self.api_client = api_client
@@ -415,8 +414,8 @@ def MoesifLogger(moesif_options):
                     )
 
                     if gv.sampling_percentage_incoming >= random_percentage:
-                        event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(
-                            100 / self.sampling_percentage)
+                        event_model.weight = 1 if gv.sampling_percentage_incoming == 0 else math.floor(
+                            100 / gv.sampling_percentage_incoming)
 
                         if self.DEBUG:
                             start_time_sending_event_w_rsp = datetime.utcnow()
@@ -438,7 +437,7 @@ def MoesifLogger(moesif_options):
                     else:
                         if self.DEBUG:
                             print("Skipped Event due to sampling percentage: " + str(
-                                self.sampling_percentage) + " and random percentage: " + str(random_percentage))
+                                gv.sampling_percentage_incoming) + " and random percentage: " + str(random_percentage))
                 except Exception as ex:
                     print("[moesif] Error when fetching sampling rate from app config", ex)
 
