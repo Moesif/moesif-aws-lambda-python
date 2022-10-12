@@ -34,14 +34,14 @@ def get_time_took_in_ms(start_time, end_time):
 def start_capture_outgoing(moesif_options):
     try:
         if moesif_options.get('DEBUG', False):
-            print('....Start capturing outgoing requests')
+            print('[moesif] Start capturing outgoing requests')
 
         # Start capturing outgoing requests
         moesif_options['APPLICATION_ID'] = os.environ["MOESIF_APPLICATION_ID"]
         StartCapture().start_capture_outgoing(moesif_options)
 
         if moesif_options.get('DEBUG', False):
-            print("....end capturing moesif options")
+            print("[moesif] end capturing moesif options")
     except Exception as e:
         print('Error while starting to capture the outgoing events')
         print(e)
@@ -49,7 +49,7 @@ def start_capture_outgoing(moesif_options):
 
 
 # Initialized the client
-api_client = gv.api_client_incoming
+api_client = gv.api_client
 
 
 def update_user(user_profile, moesif_options):
@@ -119,10 +119,10 @@ def MoesifLogger(moesif_options):
                                 username = rc_identity_id
                     except:
                         if self.DEBUG:
-                            print("MOESIF can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
+                            print("[moesif]  can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("MOESIF can not execute identify_user function, please check moesif settings.")
+                    print("[moesif]  can not execute identify_user function, please check moesif settings.")
                     print(e)
             end_time_get_user_id = datetime.utcnow()
             if self.DEBUG:
@@ -139,7 +139,7 @@ def MoesifLogger(moesif_options):
                     company_id = identify_company(event, context)
             except Exception as e:
                 if self.DEBUG:
-                    print("MOESIF can not execute identify_company function, please check moesif settings.")
+                    print("[moesif]  can not execute identify_company function, please check moesif settings.")
                     print(e)
             end_time_get_company_id = datetime.utcnow()
             if self.DEBUG:
@@ -222,7 +222,7 @@ def MoesifLogger(moesif_options):
             else:
                 request_verb = event.get('requestContext', {}).get('http', {}).get('method')
             if request_verb is None:
-                print('MOESIF: [before] AWS Lambda trigger must be a Load Balancer or API Gateway See https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html or https://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https.html.')
+                print('[moesif] : [before] AWS Lambda trigger must be a Load Balancer or API Gateway See https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html or https://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https.html.')
                 self.event = None
                 self.context = None
                 self.payload_version = None
@@ -235,7 +235,7 @@ def MoesifLogger(moesif_options):
                     req_headers = APIHelper.json_deserialize(event['headers'])
             except Exception as e:
                 if self.DEBUG:
-                    print('MOESIF Error while fetching request headers')
+                    print('[moesif]  Error while fetching request headers')
                     print(e)
 
             # Request Time
@@ -269,10 +269,10 @@ def MoesifLogger(moesif_options):
                             }
                     except:
                         if self.DEBUG:
-                            print("MOESIF can not fetch default function_name and request_context from aws context, setting metadata to None.")
+                            print("[moesif]  can not fetch default function_name and request_context from aws context, setting metadata to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("MOESIF can not execute GET_METADATA function, please check moesif settings.")
+                    print("[moesif]  can not execute GET_METADATA function, please check moesif settings.")
                     print(e)
             end_time_get_metadata = datetime.utcnow()
             if self.DEBUG:
@@ -305,10 +305,10 @@ def MoesifLogger(moesif_options):
                                 self.session_token = rc_api_key
                     except KeyError:
                         if self.DEBUG:
-                            print("MOESIF can not fetch apiKey from aws event, setting session_token to None.")
+                            print("[moesif]  can not fetch apiKey from aws event, setting session_token to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("MOESIF can not execute GET_SESSION_TOKEN function, please check moesif settings.")
+                    print("[moesif]  can not execute GET_SESSION_TOKEN function, please check moesif settings.")
                     print(e)
 
             # Api Version
@@ -323,10 +323,10 @@ def MoesifLogger(moesif_options):
                             api_version = context.function_version
                     except KeyError:
                         if self.DEBUG:
-                            print("MOESIF can not fetch default function_version from aws context, setting api_version to None.")
+                            print("[moesif]  can not fetch default function_version from aws context, setting api_version to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("MOESIF can not execute GET_API_VERSION function, please check moesif settings.")
+                    print("[moesif]  can not execute GET_API_VERSION function, please check moesif settings.")
                     print(e)
 
             # IpAddress
@@ -381,7 +381,7 @@ def MoesifLogger(moesif_options):
                         event_model = mask_event_model(event_model)
                 except Exception as e:
                     if self.DEBUG:
-                        print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.", e)
+                        print("[moesif]  Can not execute MASK_EVENT_MODEL function. Please check moesif settings.", e)
 
                 # Skip Event
                 try:
@@ -389,11 +389,11 @@ def MoesifLogger(moesif_options):
                     if skip_event is not None:
                         if skip_event(self.event, self.context):
                             if self.DEBUG:
-                                print('MOESIF Skip sending event to Moesif')
+                                print('[moesif]  Skip sending event to Moesif')
                             return retval
                 except Exception as e:
                     if self.DEBUG:
-                        print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.", e)
+                        print("[moesif]  Having difficulty executing skip_event function. Please check moesif settings.", e)
 
                 # Add direction field
                 event_model.direction = "Incoming"
@@ -406,38 +406,49 @@ def MoesifLogger(moesif_options):
                 # Sampling Rate
                 try:
                     random_percentage = random.random() * 100
-                    gv.sampling_percentage_incoming = gv.app_config_incoming.get_sampling_percentage(
+                    gv.sampling_percentage = gv.app_config.get_sampling_percentage(
                         event_model,
-                        gv.config_incoming,
+                        gv.config,
                         self.user_id,
                         self.company_id,
                     )
 
-                    if gv.sampling_percentage_incoming >= random_percentage:
-                        event_model.weight = 1 if gv.sampling_percentage_incoming == 0 else math.floor(
-                            100 / gv.sampling_percentage_incoming)
+                    if gv.sampling_percentage >= random_percentage:
+                        event_model.weight = 1 if gv.sampling_percentage == 0 else math.floor(
+                            100 / gv.sampling_percentage)
 
                         if self.DEBUG:
                             start_time_sending_event_w_rsp = datetime.utcnow()
                             event_send = self.api_client.create_event(event_model)
                             end_time_sending_event_w_rsp = datetime.utcnow()
-                            if self.DEBUG:
-                                print("[moesif] Time took in sending event to moesif in millisecond - " + str(
-                                    get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
-                                print('[moesif] Event Sent successfully ' + str(event_send))
-                        else:
-                            event_send = self.api_client.create_event(event_model)
+                            print("[moesif] sampling_percentage" + str(
+                                gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
+                            print("[moesif] Time took in sending event to moesif in millisecond - " + str(
+                                get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
+                            print('[moesif] Event Sent successfully ' + str(event_send))
 
-                        # Check if we need to update config
-                        new_config_etag = event_send['x-moesif-config-etag']
-                        if gv.config_etag_incoming is None or (gv.config_etag_incoming != new_config_etag):
-                            gv.config_etag_incoming = new_config_etag
-                            gv.config_incoming = gv.app_config_incoming.get_config(self.api_client, self.DEBUG)
+                        else:
+                            if datetime.utcnow() > gv.last_updated_time + timedelta(seconds=gv.refresh_config_time_seconds):
+                                event_send = self.api_client.create_event(event_model)
+                            else:
+                                self.api_client.create_event(event_model)
+
+                        try:
+                            # Check if we need to update config
+                            new_config_etag = event_send['x-moesif-config-etag']
+                            if gv.config_etag is None or (gv.config_etag != new_config_etag):
+                                gv.config_etag = new_config_etag
+                                gv.config = gv.app_config.get_config(self.api_client, self.DEBUG)
+                        except (KeyError, ValueError) as ex:
+                            # ignore the error because "event_send" is not set in non-blocking call
+                            pass
+                        finally:
+                            gv.last_updated_time = datetime.utcnow()
 
                     else:
                         if self.DEBUG:
                             print("Skipped Event due to sampling percentage: " + str(
-                                gv.sampling_percentage_incoming) + " and random percentage: " + str(random_percentage))
+                                gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
                 except Exception as ex:
                     print("[moesif] Error when fetching sampling rate from app config", ex)
 
