@@ -4,10 +4,11 @@ from moesifapi.moesif_api_client import *
 from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
-from .app_config import AppConfig
 from .client_ip import ClientIp
 from .update_companies import Company
 from .update_users import User
+from . import global_variable as gv
+
 from datetime import *
 import base64
 import json
@@ -29,31 +30,39 @@ from datetime import datetime
 def get_time_took_in_ms(start_time, end_time):
     return (end_time - start_time).total_seconds() * 1000
 
+
 def start_capture_outgoing(moesif_options):
     try:
         if moesif_options.get('DEBUG', False):
-            print('Start capturing outgoing requests')
+            print('....Start capturing outgoing requests')
+
         # Start capturing outgoing requests
         moesif_options['APPLICATION_ID'] = os.environ["MOESIF_APPLICATION_ID"]
         StartCapture().start_capture_outgoing(moesif_options)
+
+        if moesif_options.get('DEBUG', False):
+            print("....end capturing moesif options")
     except Exception as e:
         print('Error while starting to capture the outgoing events')
         print(e)
+    return
+
 
 # Initialized the client
-if os.environ["MOESIF_APPLICATION_ID"]:
-    api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
-else:
-    raise Exception('Moesif Application ID is required in settings')
+api_client = gv.api_client_incoming
+
 
 def update_user(user_profile, moesif_options):
     User().update_user(user_profile, api_client, moesif_options)
 
+
 def update_users_batch(user_profiles, moesif_options):
     User().update_users_batch(user_profiles, api_client, moesif_options)
 
+
 def update_company(company_profile, moesif_options):
     Company().update_company(company_profile, api_client, moesif_options)
+
 
 def update_companies_batch(companies_profiles, moesif_options):
     Company().update_companies_batch(companies_profiles, api_client, moesif_options)
@@ -77,14 +86,8 @@ def MoesifLogger(moesif_options):
             self.payload_version = None
             self.sampling_percentage = 100
 
-            # Intialized the client
-            if os.environ.get("MOESIF_APPLICATION_ID"):
-                self.api_client = MoesifAPIClient(os.environ["MOESIF_APPLICATION_ID"]).api
-            else:
-                raise Exception('Moesif Application ID is required in settings')
-
-            self.app_config = AppConfig()
-            self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+            # Set the client
+            self.api_client = api_client
 
         def clear_state(self):
             """Function to clear state of local variable"""
@@ -377,9 +380,9 @@ def MoesifLogger(moesif_options):
                     mask_event_model = self.moesif_options.get('MASK_EVENT_MODEL', None)
                     if mask_event_model is not None:
                         event_model = mask_event_model(event_model)
-                except:
+                except Exception as e:
                     if self.DEBUG:
-                        print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
+                        print("MOESIF Can not execute MASK_EVENT_MODEL function. Please check moesif settings.", e)
 
                 # Skip Event
                 try:
@@ -389,9 +392,9 @@ def MoesifLogger(moesif_options):
                             if self.DEBUG:
                                 print('MOESIF Skip sending event to Moesif')
                             return retval
-                except:
+                except Exception as e:
                     if self.DEBUG:
-                        print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.")
+                        print("MOESIF Having difficulty executing skip_event function. Please check moesif settings.", e)
 
                 # Add direction field
                 event_model.direction = "Incoming"
@@ -402,31 +405,42 @@ def MoesifLogger(moesif_options):
                     print(json.dumps(self.event))
 
                 # Sampling Rate
-                random_percentage = random.random() * 100
+                try:
+                    random_percentage = random.random() * 100
+                    gv.sampling_percentage_incoming = gv.app_config_incoming.get_sampling_percentage(
+                        event_model,
+                        gv.config_incoming,
+                        self.user_id,
+                        self.company_id,
+                    )
 
-                self.sampling_percentage = self.app_config.get_sampling_percentage(event_model,
-                                                                                   self.config,
-                                                                                   self.user_id,
-                                                                                   self.company_id)
+                    if gv.sampling_percentage_incoming >= random_percentage:
+                        event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(
+                            100 / self.sampling_percentage)
 
-                if self.sampling_percentage >= random_percentage:
-                    event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(
-                        100 / self.sampling_percentage)
-
-                    if self.DEBUG:
-                        start_time_sending_event_w_rsp = datetime.utcnow()
-                        event_send = self.api_client.create_event(event_model)
-                        end_time_sending_event_w_rsp = datetime.utcnow()
                         if self.DEBUG:
-                            print("[moesif] Time took in sending event to moesif in millisecond - " + str(
-                                get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
-                            print('[moesif] Event Sent successfully ' + str(event_send))
+                            start_time_sending_event_w_rsp = datetime.utcnow()
+                            event_send = self.api_client.create_event(event_model)
+                            end_time_sending_event_w_rsp = datetime.utcnow()
+                            if self.DEBUG:
+                                print("[moesif] Time took in sending event to moesif in millisecond - " + str(
+                                    get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
+                                print('[moesif] Event Sent successfully ' + str(event_send))
+                        else:
+                            event_send = self.api_client.create_event(event_model)
+
+                        # Check if we need to update config
+                        new_config_etag = event_send['x-moesif-config-etag']
+                        if gv.config_etag_incoming is None or (gv.config_etag_incoming != new_config_etag):
+                            gv.config_etag_incoming = new_config_etag
+                            gv.config_incoming = gv.app_config_incoming.get_config(self.api_client, self.DEBUG)
+
                     else:
-                        self.api_client.create_event(event_model)
-                else:
-                    if self.DEBUG:
-                        print("Skipped Event due to sampling percentage: " + str(
-                            self.sampling_percentage) + " and random percentage: " + str(random_percentage))
+                        if self.DEBUG:
+                            print("Skipped Event due to sampling percentage: " + str(
+                                self.sampling_percentage) + " and random percentage: " + str(random_percentage))
+                except Exception as ex:
+                    print("[moesif] Error when fetching sampling rate from app config", ex)
 
             end_time_after_handler_function = datetime.utcnow()
             if self.DEBUG:
