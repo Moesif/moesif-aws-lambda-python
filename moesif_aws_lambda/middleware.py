@@ -406,52 +406,53 @@ def MoesifLogger(moesif_options):
 
                 # Sampling Rate
                 try:
-                    random_percentage = random.random() * 100
                     gv.sampling_percentage = gv.app_config.get_sampling_percentage(
                         event_model,
                         gv.config,
                         self.user_id,
                         self.company_id,
                     )
-
-                    if gv.sampling_percentage >= random_percentage:
-                        event_model.weight = 1 if gv.sampling_percentage == 0 else math.floor(
-                            100 / gv.sampling_percentage)
-
-                        if self.DEBUG:
-                            start_time_sending_event_w_rsp = datetime.utcnow()
-                            event_send = self.api_client.create_event(event_model)
-                            end_time_sending_event_w_rsp = datetime.utcnow()
-                            print("[moesif] sampling_percentage" + str(
-                                gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
-                            print("[moesif] Time took in sending event to moesif in millisecond - " + str(
-                                get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
-                            print('[moesif] Event Sent successfully ' + str(event_send))
-
-                        else:
-                            if datetime.utcnow() > gv.last_updated_time + timedelta(seconds=gv.refresh_config_time_seconds):
-                                event_send = self.api_client.create_event(event_model)
-                            else:
-                                self.api_client.create_event(event_model)
-
-                        try:
-                            # Check if we need to update config
-                            new_config_etag = event_send['x-moesif-config-etag']
-                            if gv.config_etag is None or (gv.config_etag != new_config_etag):
-                                gv.config_etag = new_config_etag
-                                gv.config = gv.app_config.get_config(self.api_client, self.DEBUG)
-                        except (KeyError, TypeError, ValueError) as ex:
-                            # ignore the error because "event_send" is not set in non-blocking call
-                            pass
-                        finally:
-                            gv.last_updated_time = datetime.utcnow()
-
-                    else:
-                        if self.DEBUG:
-                            print("Skipped Event due to sampling percentage: " + str(
-                                gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
                 except Exception as ex:
                     print("[moesif] Error when fetching sampling rate from app config", ex)
+                    gv.sampling_percentage = 100
+
+                random_percentage = random.random() * 100
+                if gv.sampling_percentage >= random_percentage:
+                    event_model.weight = 1 if gv.sampling_percentage == 0 else math.floor(
+                        100 / gv.sampling_percentage)
+
+                    if self.DEBUG:
+                        start_time_sending_event_w_rsp = datetime.utcnow()
+                        event_send = self.api_client.create_event(event_model)
+                        end_time_sending_event_w_rsp = datetime.utcnow()
+                        print("[moesif] sampling_percentage" + str(
+                            gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
+                        print("[moesif] Time took in sending event to moesif in millisecond - " + str(
+                            get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
+                        print('[moesif] Event Sent successfully ' + str(event_send))
+
+                    else:
+                        if datetime.utcnow() > gv.last_updated_time + timedelta(seconds=gv.refresh_config_time_seconds):
+                            event_send = self.api_client.create_event(event_model)
+                        else:
+                            self.api_client.create_event(event_model)
+
+                    try:
+                        # Check if we need to update config
+                        new_config_etag = event_send['x-moesif-config-etag']
+                        if gv.config_etag is None or (gv.config_etag != new_config_etag):
+                            gv.config_etag = new_config_etag
+                            gv.config = gv.app_config.get_config(self.api_client, self.DEBUG)
+                    except (KeyError, TypeError, ValueError) as ex:
+                        # ignore the error because "event_send" is not set in non-blocking call
+                        pass
+                    finally:
+                        gv.last_updated_time = datetime.utcnow()
+
+                else:
+                    if self.DEBUG:
+                        print("Skipped Event due to sampling percentage: " + str(
+                            gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
 
             end_time_after_handler_function = datetime.utcnow()
             if self.DEBUG:
