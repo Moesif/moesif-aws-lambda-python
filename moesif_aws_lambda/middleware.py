@@ -71,6 +71,7 @@ def update_companies_batch(companies_profiles, moesif_options):
 def MoesifLogger(moesif_options):
     class log_data(LambdaDecorator):
         def __init__(self, handler):
+        
             self.event_req = None
             self.handler = handler
             self.moesif_options = moesif_options
@@ -119,10 +120,10 @@ def MoesifLogger(moesif_options):
                                 username = rc_identity_id
                     except:
                         if self.DEBUG:
-                            print("[moesif]  can not fetch apiKey from cognitoIdentityId event, setting userId to None.")
+                            print("[moesif] cannot fetch apiKey from cognitoIdentityId event, setting userId to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("[moesif]  can not execute identify_user function, please check moesif settings.")
+                    print("[moesif] cannot execute identify_user function, please check moesif settings.")
                     print(e)
             end_time_get_user_id = datetime.utcnow()
             if self.DEBUG:
@@ -139,7 +140,7 @@ def MoesifLogger(moesif_options):
                     company_id = identify_company(event, context)
             except Exception as e:
                 if self.DEBUG:
-                    print("[moesif]  can not execute identify_company function, please check moesif settings.")
+                    print("[moesif] cannot execute identify_company function, please check moesif settings.")
                     print(e)
             end_time_get_company_id = datetime.utcnow()
             if self.DEBUG:
@@ -148,7 +149,13 @@ def MoesifLogger(moesif_options):
 
         def build_uri(self, event, payload_format_version_1_0):
 
-            uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost'))
+            uri = ''
+            try: 
+                uri = event['headers'].get('X-Forwarded-Proto', event['headers'].get('x-forwarded-proto', 'http')) + '://' + event['headers'].get('Host', event['headers'].get('host', 'localhost'))
+            except Exception as e:
+                if self.DEBUG:
+                    print("[moesif] cannot read HTTP headers X-Forwarded-Proto or Host. Ensure event triggered via external URL")
+                    print(e)
 
             if payload_format_version_1_0:
                 uri = uri + event.get('path', '/')
@@ -204,6 +211,9 @@ def MoesifLogger(moesif_options):
             """This function runs before the handler is invoked, is passed the event & context and must return an event & context too."""
 
             start_time_before_handler_function = datetime.utcnow()
+            if self.DEBUG:
+                print('[moesif] : [before] Incoming Event:')
+                print(json.dumps(event))
 
             # Clear the state of the local variables
             self.clear_state()
@@ -235,7 +245,7 @@ def MoesifLogger(moesif_options):
                     req_headers = APIHelper.json_deserialize(event['headers'])
             except Exception as e:
                 if self.DEBUG:
-                    print('[moesif]  Error while fetching request headers')
+                    print('[moesif] Error while fetching request headers')
                     print(e)
 
             # Request Time
@@ -269,10 +279,10 @@ def MoesifLogger(moesif_options):
                             }
                     except:
                         if self.DEBUG:
-                            print("[moesif]  can not fetch default function_name and request_context from aws context, setting metadata to None.")
+                            print("[moesif] cannot fetch default function_name and request_context from aws context, setting metadata to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("[moesif]  can not execute GET_METADATA function, please check moesif settings.")
+                    print("[moesif] cannot execute GET_METADATA function, please check moesif settings.")
                     print(e)
             end_time_get_metadata = datetime.utcnow()
             if self.DEBUG:
@@ -305,10 +315,10 @@ def MoesifLogger(moesif_options):
                                 self.session_token = rc_api_key
                     except KeyError:
                         if self.DEBUG:
-                            print("[moesif]  can not fetch apiKey from aws event, setting session_token to None.")
+                            print("[moesif] cannot fetch apiKey from aws event, setting session_token to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("[moesif]  can not execute GET_SESSION_TOKEN function, please check moesif settings.")
+                    print("[moesif] cannot execute GET_SESSION_TOKEN function, please check moesif settings.")
                     print(e)
 
             # Api Version
@@ -323,10 +333,10 @@ def MoesifLogger(moesif_options):
                             api_version = context.function_version
                     except KeyError:
                         if self.DEBUG:
-                            print("[moesif]  can not fetch default function_version from aws context, setting api_version to None.")
+                            print("[moesif] cannot fetch default function_version from aws context, setting api_version to None.")
             except Exception as e:
                 if self.DEBUG:
-                    print("[moesif]  can not execute GET_API_VERSION function, please check moesif settings.")
+                    print("[moesif] cannot execute GET_API_VERSION function, please check moesif settings.")
                     print(e)
 
             # IpAddress
@@ -353,7 +363,7 @@ def MoesifLogger(moesif_options):
 
         def after(self, retval):
             """This function runs after the handler is invoked, is passed the response and must return an response too."""
-
+            
             start_time_after_handler_function = datetime.utcnow()
             event_send = None
             if self.event is not None:
@@ -382,7 +392,7 @@ def MoesifLogger(moesif_options):
                         event_model = mask_event_model(event_model)
                 except Exception as e:
                     if self.DEBUG:
-                        print("[moesif]  Can not execute MASK_EVENT_MODEL function. Please check moesif settings.", e)
+                        print("[moesif] cannot execute MASK_EVENT_MODEL function. Please check moesif settings.", e)
 
                 # Skip Event
                 try:
@@ -390,18 +400,18 @@ def MoesifLogger(moesif_options):
                     if skip_event is not None:
                         if skip_event(self.event, self.context):
                             if self.DEBUG:
-                                print('[moesif]  Skip sending event to Moesif')
+                                print('[moesif] Skip sending event to Moesif')
                             return retval
                 except Exception as e:
                     if self.DEBUG:
-                        print("[moesif]  Having difficulty executing skip_event function. Please check moesif settings.", e)
+                        print("[moesif] Having difficulty executing skip_event function. Please check moesif settings.", e)
 
                 # Add direction field
                 event_model.direction = "Incoming"
 
                 # Send event to Moesif
                 if self.DEBUG:
-                    print('Moesif Event Model:')
+                    print('[moesif] : [after] Moesif Event Model:')
                     print(json.dumps(self.event))
 
                 # Sampling Rate

@@ -55,6 +55,11 @@ You can always find your Moesif Application Id at any time by logging
 into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
  and then clicking _Installation_.
 
+### 3. Trigger your API
+Grab the URL to your API Gateway or LB and make some calls using a tool like Postman or CURL. 
+
+> In order for your event to log to Moesif, you must test using the Amazon API Gateway trigger. Do not invoke your lambda directly using AWS Console as the payload won't contain a valid HTTP payload.  
+
 ## Repo file structure
 
 - `moesif_aws_lambda/middleware.py` the middleware library

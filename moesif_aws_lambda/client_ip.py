@@ -93,7 +93,7 @@ class ClientIp:
                 return default_source_ip
             else:
                 return None
-        except KeyError:
+        except Exception:
             if default_source_ip:
                 return default_source_ip
             else:
