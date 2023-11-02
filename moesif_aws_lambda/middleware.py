@@ -428,21 +428,10 @@ def MoesifLogger(moesif_options):
                         event_model.weight = 1 if gv.sampling_percentage == 0 else math.floor(
                             100 / gv.sampling_percentage)
 
-                        if self.DEBUG:
-                            start_time_sending_event_w_rsp = datetime.utcnow()
+                        if datetime.utcnow() > gv.last_updated_time + timedelta(seconds=gv.refresh_config_time_seconds):
                             event_send = self.api_client.create_event(event_model)
-                            end_time_sending_event_w_rsp = datetime.utcnow()
-                            print("[moesif] sampling_percentage" + str(
-                                gv.sampling_percentage) + " and random percentage: " + str(random_percentage))
-                            print("[moesif] Time took in sending event to moesif in millisecond - " + str(
-                                get_time_took_in_ms(start_time_sending_event_w_rsp, end_time_sending_event_w_rsp)))
-                            print('[moesif] Event Sent successfully ' + str(event_send))
-
                         else:
-                            if datetime.utcnow() > gv.last_updated_time + timedelta(seconds=gv.refresh_config_time_seconds):
-                                event_send = self.api_client.create_event(event_model)
-                            else:
-                                self.api_client.create_event(event_model)
+                            self.api_client.create_event(event_model)
 
                         try:
                             # Check if we need to update config
