@@ -54,7 +54,8 @@
       "requestId": "id",
       "routeKey": "$default",
       "stage": "$default",
-      "time": "12/Mar/2020:19:03:58 +0000"
+      "time": "12/Mar/2020:19:03:58 +0000",
+      "timeEpoch": 1698901826000
     },
     "body": "Hello from Lambda",
     "pathParameters": {
