@@ -26,6 +26,7 @@ pip install moesif_aws_lambda
 
 ```python
 from moesif_aws_lambda.middleware import MoesifLogger
+import json
 
 moesif_options = {
     'LOG_BODY': True
@@ -36,14 +37,16 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200,
         'isBase64Encoded': False,
-        'body': {
+        'body': json.dumps({
             'msg': 'Hello from Lambda!'
-        },
+        }),
         'headers': {
             'Content-Type': 'application/json'
         }
     }
 ```
+
+> __Important:__ Make sure you set the `body` field to a JSON-formatted string using `json.dumps()`. Otherwise,  API Gateway returns a `502 Bad Gateway` error response.
 
 ### 2. Set MOESIF_APPLICATION_ID environment variable 
 
@@ -55,7 +58,10 @@ You can always find your Moesif Application Id at any time by logging
 into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
  and then clicking _Installation_.
 
-### 3. Trigger your API
+### 3. Deploy your Lambda function 
+To deploy your Lambda function code with Moesif AWS Lambda middleware, you must archive them in a zip file. For archiving instructions, see our [example Lambda function repository](https://github.com/Moesif/moesif-aws-lambda-python-example?tab=readme-ov-file#how-to-run-this-example). Then follow the instructions in [AWS Lambda docs to upload and deploy your Lambda function code as a zip file archive](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html).
+
+### 4. Trigger your API
 Grab the URL to your API Gateway or LB and make some calls using a tool like Postman or CURL. 
 
 > In order for your event to log to Moesif, you must test using the Amazon API Gateway trigger. Do not invoke your lambda directly using AWS Console as the payload won't contain a valid HTTP payload.  
