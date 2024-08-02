@@ -32,8 +32,8 @@ After you log into [Moesif Portal](https://www.moesif.com/wrap), you can get you
 
 1. Select the account icon to bring up the settings menu.
 2. Select **Installation** or **API Keys**.
-  <img class="lazyload blur-up" src="images/app_id.png" width="700" alt="Accessing the settings menu in Moesif Portal">
 3. Copy your Moesif Application ID from the **Collector Application ID** field.
+<img class="lazyload blur-up" src="images/app_id.png" width="700" alt="Accessing the settings menu in Moesif Portal">
 
 ## Install the Middleware
 Install with `pip` using the following command:
