@@ -1,28 +1,52 @@
-# Moesif AWS Lambda Middleware
+# Moesif AWS Lambda Middleware for Python documentation
+by [Moesif](https://moesif.com), the [API analytics](https://www.moesif.com/features/api-analytics) and [API monetization](https://www.moesif.com/solutions/metered-api-billing) platform.
+
 
 [![Built For][ico-built-for]][link-built-for]
 [![Software License][ico-license]][link-license]
 [![Source Code][ico-source]][link-source]
 
-Middleware (Python) to automatically log API calls from AWS Lambda functions
-and sends to [Moesif](https://www.moesif.com) for API analytics and log analysis. 
+With Moesif Python middleware for AWS Lambda, you can automatically log API calls 
+and send them to [Moesif](https://www.moesif.com) for API analytics and monitoring.
+This middleware allows you to integrate Moesif's API analytics and 
+API monetization features into your Python applications with minimal configuration.
 
-Designed for APIs that are hosted on AWS Lambda using Amazon API Gateway or Application Load Balancer
-as a trigger.
+> If you're new to Moesif, see [our Getting Started](https://www.moesif.com/docs/) resources to quickly get up and running.
 
-This middleware expects the
-[Lambda proxy integration type.](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-set-up-lambda-proxy-integration-on-proxy-resource)
-If you're using AWS Lambda with API Gateway, you are most likely using the proxy integration type.
+## Who This Middleware is For
 
-## How to install
+We've designed Moesif Python middleware for AWS Lambda for APIs that you host 
+on AWS Lambda using Amazon API Gateway or Application Load Balancer
+as a trigger. This middleware expects the
+[Lambda proxy integration type](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html). If you're using AWS Lambda with API Gateway, 
+you are most likely using the proxy integration type.
+
+## Prerequisites
+Before using this middleware, make sure you have the following:
+
+- [An active Moesif account](https://moesif.com/wrap)
+- [A Moesif Application ID](#get-your-moesif-application-id)
+
+### Get Your Moesif Application ID
+After you log into [Moesif Portal](https://www.moesif.com/wrap), you can get your Moesif Application ID during the onboarding steps. You can always access the Application ID any time by following these steps from Moesif Portal after logging in:
+
+1. Select the account icon to bring up the settings menu.
+2. Select **Installation** or **API Keys**.
+    <img class="lazyload blur-up" src="images/app_id.png" width="700" alt="Accessing the settings menu in Moesif Portal">
+3. Copy your Moesif Application ID from the **Collector Application ID** field.
+
+## Install the Middleware
+Install with `pip` using the following command:
 
 ```shell
 pip install moesif_aws_lambda
 ```
 
-## How to use
+## Configure the Middleware
+See the available [configuration options](#configuration-options) to learn how to configure the middleware for your use case. 
 
-### 1. Add middleware to your Lambda application.
+## How to Use
+### 1. Add the Middleware to your Lambda Application
 
 ```python
 from moesif_aws_lambda.middleware import MoesifLogger
@@ -48,49 +72,80 @@ def lambda_handler(event, context):
 
 > __Important:__ Make sure you set the `body` field to a JSON-formatted string using `json.dumps()`. Otherwise,  API Gateway returns a `502 Bad Gateway` error response.
 
-### 2. Set MOESIF_APPLICATION_ID environment variable 
+### 2. Set the MOESIF_APPLICATION_ID Environment Variable 
+The middleware expects the `MOESIF_APPLICATION_ID` environment variable to be able to connect with your Moesif account and send analytics. This variable holds the value of [your Moesif Application ID](#get-your-moesif-application-id). For instructions on how to set environment variables in Lambda, see [Use Lambda environment variables to configure values in code](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html).
 
-Add a new environment variable with the name `MOESIF_APPLICATION_ID` and the value being your Moesif application id,
-which can be found in the [_Moesif Portal_](https://www.moesif.com/).
-After signing up for a Moesif account, your Moesif Application Id will be displayed during the onboarding steps. 
-
-You can always find your Moesif Application Id at any time by logging 
-into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
- and then clicking _Installation_.
-
-### 3. Deploy your Lambda function 
+### 3. Deploy your Lambda Function 
 To deploy your Lambda function code with Moesif AWS Lambda middleware, you must archive them in a zip file. For archiving instructions, see our [example Lambda function repository](https://github.com/Moesif/moesif-aws-lambda-python-example?tab=readme-ov-file#how-to-run-this-example). Then follow the instructions in [AWS Lambda docs to upload and deploy your Lambda function code as a zip file archive](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html).
 
-### 4. Trigger your API
-Grab the URL to your API Gateway or LB and make some calls using a tool like Postman or CURL. 
+### 4. Call your API
+Finally, grab the URL to your API Gateway or Application Load Balancer and make some HTTP requests using a tool like Postman or cURL.
 
-> In order for your event to log to Moesif, you must test using the Amazon API Gateway trigger. Do not invoke your lambda directly using AWS Console as the payload won't contain a valid HTTP payload.  
+> In order for your events to log to Moesif, you must test using the Amazon API Gateway trigger. Do not invoke your Lambda directly using AWS Console as the payload won't contain a valid HTTP payload.
 
-## Repo file structure
+## Troubleshoot
+For a general troubleshooting guide that can help you solve common problems, see [Server Troubleshooting Guide](https://www.moesif.com/docs/troubleshooting/server-troubleshooting-guide/).
 
-- `moesif_aws_lambda/middleware.py` the middleware library
-- `lambda_function.py` sample AWS Lambda function using the middleware
+Other troubleshooting supports:
 
-## Optional: Capturing outgoing API calls
-If you want to capture all outgoing API calls from your Python Lambda function to third parties like
-Stripe or to your own dependencies, call `start_capture_outgoing()` to start capturing. This mechanism works by 
-patching the [Requests](https://requests.readthedocs.io/en/master/) 
+- [FAQ](https://www.moesif.com/docs/faq/)
+- [Moesif support email](mailto:support@moesif.com)
 
-```python
-from moesif_aws_lambda.middleware import *
-start_capture_outgoing(moesif_options) # moesif_options are the configuration options.
+## Repository Structure
+
+```
+.
+├── eventV1.json
+├── eventV2.json
+├── images/
+├── lambda_function.py
+├── LICENSE
+├── moesif_aws_lambda/
+├── package.sh
+├── README.md
+├── requirements.txt
+├── setup.cfg
+└── setup.py
 ```
 
-## Configuration options
+These are the most important files:
+
+- **`moesif_aws_lambda/middleware.py`**: the middleware library
+- **`lambda_function.py`**: sample AWS Lambda function using the middleware
+
+## Configuration Options
+The following sections describe the available configuration options for this middleware. You can set these options in a Python object and then pass that object as argument to the `MoesifLogger` decorator. See [the sample AWS Lambda middleware function code](https://github.com/Moesif/moesif-aws-lambda-python/blob/857af6d4c12be8681e569f42317043c51acc2341/lambda_function.py#L6) for an example.
 
 ### __`IDENTIFY_USER`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
 
-Type: `(event, context) => String`
-
-`IDENTIFY_USER` is a function that takes AWS lambda `event` and `context` objects as arguments
-and returns a user_id. This enables Moesif to attribute API requests to individual unique users
-so you can understand who calling your API. This can be used simultaneously with `IDENTIFY_COMPANY`
-to track both individual customers and the companies their a part of.
+A function that takes AWS Lambda `event` and `context` objects as arguments
+and returns a user ID. This allows Moesif to attribute API requests to individual unique users
+so you can understand who is calling your API. You can use this simultaneously with [`identifyCompany`](#identifycompany)
+to track both individual customers and the companies they are a part of.
 
 
 ```python
@@ -101,13 +156,36 @@ def identify_user(event, context):
 
 ### __`IDENTIFY_COMPANY`__
 
-Type: `(event, context) => String`
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
 
-`IDENTIFY_COMPANY` is a function that takes AWS lambda `event` and `context` objects as arguments
-and returns a company_id. If your business is B2B, this enables Moesif to attribute 
-API requests to specific companies or organizations so you can understand which accounts are 
-calling your API. This can be used simultaneously with `IDENTIFY_USER` to track both 
-individual customers and the companies their a part of. 
+A function that takes AWS Lambda `event` and `context` objects as arguments
+and returns a company ID. If you have a B2B business, this allows Moesif to attribute
+API requests to specific companies or organizations so you can understand which accounts are
+calling your API. You can use this simultaneously with [`identifyUser`](#identifyuser) to track both
+individual customers and the companies they are a part of.
 
 
 ```python
@@ -119,11 +197,33 @@ def identify_company(event, context):
 
 ### __`GET_SESSION_TOKEN`__
 
-Type: `(event, context) => String`
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
 
-`GET_SESSION_TOKEN` a function that takes AWS lambda `event` and `context` objects as arguments and returns a
-session token (i.e. such as an API key).
-
+A function that takes AWS lambda `event` and `context` objects as arguments and returns a
+session token such as an API key.
 
 ```python
 def get_session_token(event, context):
@@ -132,12 +232,33 @@ def get_session_token(event, context):
 ```
 
 ### __`GET_API_VERSION`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
 
-Type: `(event, context) => String`
-
-`GET_API_VERSION` is a function that takes AWS lambda `event` and `context` objects as arguments and
+A function that takes AWS lambda `event` and `context` objects as arguments and
 returns a string to tag requests with a specific version of your API.
-
 
 ```python
 def get_api_version(event, context):
@@ -146,10 +267,37 @@ def get_api_version(event, context):
 ```
 
 ### __`GET_METADATA`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>Object</code>
+   </td>
+  </tr>
+</table>
 
-Type: `(event, context) => String`
+A function that takes AWS lambda `event` and `context` objects as arguments and returns an object. 
 
-`GET_METADATA` is a function that AWS lambda `event` and `context` objects as arguments and returns an object that allows you to add custom metadata that will be associated with the request. The metadata must be a simple python object that can be converted to JSON. For example, you may want to save a function_name, a trace_id, or request_context with the request.
+This function allows you
+to add custom metadata that Moesif can associate with the request. The metadata must be a simple Python object that can be converted to JSON. 
+
+For example, you may want to save a virtual machine instance ID, a trace ID, or a tenant ID with the request.
 
 
 ```python
@@ -163,12 +311,35 @@ def get_metadata(event, context):
 ```
 
 ### __`SKIP`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(event, context)</code>
+   </td>
+   <td>
+    <code>Boolean</code>
+   </td>
+  </tr>
+</table>
 
-Type: `(event, context) => Boolean`
+A function that takes AWS lambda `event` and `context` objects as arguments and returns `True`
+if you want to skip the event. Skipping an event means Moesif doesn't log the event.
 
-`SKIP` is a function that takes AWS lambda `event` and `context` objects as arguments and returns true
-if the event should be skipped (i.e. not logged)
-<br/>_The default is shown below and skips requests to the root path "/"._
+The following example skips requests to the root path `/`:
 
 
 ```python
@@ -178,62 +349,300 @@ def should_skip(event, context):
 ```
 
 ### __`MASK_EVENT_MODEL`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(MASK_EVENT_MODEL)</code>
+   </td>
+   <td>
+    <code>MASK_EVENT_MODEL</code>
+   </td>
+  </tr>
+</table>
 
-Type: `MoesifEventModel => MoesifEventModel`
+A function that takes the final Moesif event model, rather than the AWS lambda event or context objects, as an
+argument before the middleware sends the event model object to Moesif. 
 
-`MASK_EVENT_MODEL` is a function that takes the final Moesif event model (rather than the AWS lambda event/context objects) as an argument before being sent to Moesif. With maskContent, you can make modifications to headers or body such as removing certain header or body fields.
+With `MASK_EVENT_MODEL`, you can make modifications to headers or body such as
+removing certain header or body fields.
+
 
 ```python
 def mask_event(eventmodel):
   # remove any field that you don't want to be sent to Moesif.
   return eventmodel
- ```
+```
+
+For an example of how Moesif event model looks like, see the [`eventV1.json`](eventV1.json) and [`eventV2.json`](eventV2.json) files.
+
+For more information about the different fields of Moesif's event model,
+see [Moesif Python API documentation](https://www.moesif.com/docs/api?python).
+
 
 ### __`DEBUG`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Default
+   </th>
+  </tr>
+  <tr>
+   <td>
+    <code>Boolean</code>
+   </td>
+   <td>
+    <code>undefined</code>
+   </td>
+  </tr>
+</table>
 
-Type: `Boolean`
+Set to `True` to print debug logs if you're having integration issues.
 
-Set to true to print debug logs if you're having integration issues. 
 
 ### __`LOG_BODY`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Default
+   </th>
+  </tr>
+  <tr>
+   <td>
+    <code>Boolean</code>
+   </td>
+   <td>
+    <code>true</code>
+   </td>
+  </tr>
+</table>
 
-Type: `Boolean`
+Whether to log request and response body to Moesif.
 
-`LOG_BODY` is default to true, set to false to remove logging request and response body to Moesif.
+## Optional: Capturing Outgoing API Calls
+If you want to capture all outgoing API calls from your Python app to third parties like
+Stripe or to your own dependencies, call `start_capture_outgoing()` to start capturing. This mechanism works by 
+patching [Requests](https://requests.readthedocs.io/en/master/).
 
-## Options for logging outgoing calls
+```python
+from moesif_aws_lambda.middleware import *
+start_capture_outgoing(moesif_options) # moesif_options are the configuration options.
+```
 
-The options below are applied to outgoing API calls. The request and response objects passed in are  [Requests](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) request and [Response](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) response objects.
+### Options for Logging Outgoing Calls
 
-### __`SKIP_OUTGOING`__
-(optional) _(req, res) => boolean_, a function that takes a [Requests](https://requests.readthedocs.io/en/master/) request and response,
-and returns true if you want to skip this particular event.
+The following options are available for capturing and logging outgoing calls. The request and response objects passed in correspond to the [`Request` and `Response` objects](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) respectively of the Python Requests library.
 
-### __`IDENTIFY_USER_OUTGOING`__
-(optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
-but different frameworks and your implementation might be very different, it would be helpful and much more accurate to provide this function.
+#### __`SKIP_OUTGOING`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(request, response)</code>
+   </td>
+   <td>
+    <code>Boolean</code>
+   </td>
+  </tr>
+</table>
+Optional.
 
-### __`IDENTIFY_COMPANY_OUTGOING`__
-(optional) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the company id for this event.
+This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns `True` if you want to skip this particular event.
 
-### __`GET_METADATA_OUTGOING`__
-(optional) _(req, res) => dictionary_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and
-returns a dictionary (must be able to be encoded into JSON). This allows
-to associate this event with custom metadata. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
+#### __`IDENTIFY_USER_OUTGOING`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(request, response)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
 
-### __`GET_SESSION_TOKEN_OUTGOING`__
-(optional) _(req, res) => string_, a function that takes [Requests](https://requests.readthedocs.io/en/master/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
+Optional, but highly recommended.
 
-### __`LOG_BODY_OUTGOING`__
-(optional) _boolean_, default True, Set to False to remove logging request and response body.
+This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents 
+the user ID used by your system. While Moesif tries to identify users automatically, different frameworks and your implementation might be very different. So we highly recommend that you accurately provide a 
+user ID using this function.
 
-## Update User
+#### __`IDENTIFY_COMPANY_OUTGOING`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(request, response)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
+
+Optional.
+
+This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents
+ the company ID for this event.
+
+#### __`GET_METADATA_OUTGOING`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(request, response)</code>
+   </td>
+   <td>
+    <code>Dictionary</code>
+   </td>
+  </tr>
+</table>
+
+Optional.
+
+This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and
+returns a Python dictionary. The dictionary must be such that it can be converted into 
+valid JSON. This allows you to associate this event with custom metadata. 
+
+For example, you may want to save a virtual machine instance ID, a trace ID, or a tenant ID with the request.
+
+#### __`GET_SESSION_TOKEN_OUTGOING`__
+Optional.
+
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Parameters
+   </th>
+   <th scope="col">
+    Return type
+   </th>
+  </tr>
+  <tr>
+   <td>
+    Function
+   </td>
+   <td>
+    <code>(request, response)</code>
+   </td>
+   <td>
+    <code>String</code>
+   </td>
+  </tr>
+</table>
+
+This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents the session token for this event. Similar to [user IDs](#identify_user_outgoing), Moesif tries to get the session token automatically. However, if you setup differs from the standard, this function can help tying up events together and help you replay the events.
+
+#### __`LOG_BODY_OUTGOING`__
+<table>
+  <tr>
+   <th scope="col">
+    Data type
+   </th>
+   <th scope="col">
+    Default
+   </th>
+  </tr>
+  <tr>
+   <td>
+    <code>Boolean</code>
+   </td>
+   <td>
+    <code>true</code>
+   </td>
+  </tr>
+</table>
+
+Optional.
+
+Whether to log request and response body to Moesif.
+
+## Examples
+See the [example AWS Lambda function](https://github.com/Moesif/moesif-aws-lambda-python/blob/master/lambda_function.py) that uses this middleware.
+
+The following examples demonstrate how to add and update customer information.
 
 ### Update A Single User
 Create or update a user profile in Moesif.
 The metadata field can be any customer demographic or other info you want to store.
 Only the `user_id` field is required.
-For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-user).
+
+To create or update a [user](https://www.moesif.com/docs/getting-started/users/) profile in Moesif, use the `update_user()` function.
 
 ```python
 from moesif_aws_lambda.middleware import *
@@ -273,10 +682,12 @@ user = {
 update_user(user, moesif_options)
 ```
 
+The `metadata` field can contain any customer demographic or other info you want to store. Moesif only requires the `user_id` field.
+
+For more information, see the function documentation in [Moesif Python API Reference](https://www.moesif.com/docs/api?python#update-a-user).
+
 ### Update Users in Batch
-Similar to update_user, but used to update a list of users in one batch.
-Only the `user_id` field is required.
-For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-users-in-batch).
+To update a list of [users](https://www.moesif.com/docs/getting-started/users/) in one batch, use the `update_users_batch()` function.
 
 ```python
 from moesif_aws_lambda.middleware import *
@@ -320,13 +731,12 @@ userB = {
 update_users_batch([userA, userB], moesif_options)
 ```
 
-## Update Company
+The `metadata` field can contain any customer demographic or other info you want to store. Moesif only requires the `user_id` field.
+
+For more information, see the function documentation in [Moesif Python API Reference](https://www.moesif.com/docs/api?python#update-users-in-batch).
 
 ### Update A Single Company
-Create or update a company profile in Moesif.
-The metadata field can be any company demographic or other info you want to store.
-Only the `company_id` field is required.
-For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-company).
+To update a single [company](https://www.moesif.com/docs/getting-started/companies/), use the `update_company()` function.
 
 ```python
 from moesif_aws_lambda.middleware import *
@@ -365,10 +775,14 @@ company = {
 update_company(company, moesif_options)
 ```
 
+The `metadata` field can contain any company demographic or other information you want to store. Moesif only requires the `company_id` field. For more information, see the function documentation in [Moesif Python API Reference](https://www.moesif.com/docs/api?python#update-a-company).
+
 ### Update Companies in Batch
+To update a list of [companies](https://www.moesif.com/docs/getting-started/companies/) in one batch, use the `update_companies_batch()` function.
+
 Similar to update_company, but used to update a list of companies in one batch.
 Only the `company_id` field is required.
-For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-companies-in-batch).
+
 
 ```python
 from moesif_aws_lambda.middleware import *
@@ -411,13 +825,16 @@ companyB = {
 update_companies_batch([companyA, companyB], moesif_options)
 ```
 
-## Examples
+The `metadata` field can contain any company demographic or other information you want to store. Moesif only requires the `company_id` field. For more information, see the function documentation in [Moesif Python API Reference](https://www.moesif.com/docs/api?python#update-companies-in-batch).
 
-- [A complete example is available on GitHub](https://github.com/Moesif/moesif-aws-lambda-python-example).
+## Additional Documentation
+See [Moesif AWS Lambda Example for Python](https://github.com/Moesif/moesif-aws-lambda-python-example) for an example Lambda function using this middleware.
 
-## Other integrations
+## How to Get Help
+If you face any issues using this middleware, try the [troubheshooting guidelines](#troubleshoot). For further assistance, reach out to our [support team](mailto:support@moesif.com).
 
-To view more documentation on integration options, please visit __[the Integration Options Documentation](https://www.moesif.com/docs/getting-started/integration-options/).__
+## Explore Other integrations
+Explore other integration options from Moesif in [the Server Integration Options documentation](https://www.moesif.com/docs/getting-started/integration-options/).
 
 [ico-built-for]: https://img.shields.io/badge/built%20for-aws%20lambda-blue.svg
 [ico-license]: https://img.shields.io/badge/License-Apache%202.0-green.svg
