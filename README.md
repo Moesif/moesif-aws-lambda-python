@@ -144,7 +144,7 @@ The following sections describe the available configuration options for this mid
 
 A function that takes AWS Lambda `event` and `context` objects as arguments
 and returns a user ID. This allows Moesif to attribute API requests to individual unique users
-so you can understand who is calling your API. You can use this simultaneously with [`identifyCompany`](#identifycompany)
+so you can understand who is calling your API. You can use this simultaneously with [`identify_company`](#identify_company)
 to track both individual customers and the companies they are a part of.
 
 
@@ -184,7 +184,7 @@ def identify_user(event, context):
 A function that takes AWS Lambda `event` and `context` objects as arguments
 and returns a company ID. If you have a B2B business, this allows Moesif to attribute
 API requests to specific companies or organizations so you can understand which accounts are
-calling your API. You can use this simultaneously with [`identifyUser`](#identifyuser) to track both
+calling your API. You can use this simultaneously with [`identify_user`](#identify_user) to track both
 individual customers and the companies they are a part of.
 
 
