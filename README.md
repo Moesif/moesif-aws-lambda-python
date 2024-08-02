@@ -32,7 +32,7 @@ After you log into [Moesif Portal](https://www.moesif.com/wrap), you can get you
 
 1. Select the account icon to bring up the settings menu.
 2. Select **Installation** or **API Keys**.
-    <img class="lazyload blur-up" src="images/app_id.png" width="700" alt="Accessing the settings menu in Moesif Portal">
+  <img class="lazyload blur-up" src="images/app_id.png" width="700" alt="Accessing the settings menu in Moesif Portal">
 3. Copy your Moesif Application ID from the **Collector Application ID** field.
 
 ## Install the Middleware
@@ -579,7 +579,6 @@ valid JSON. This allows you to associate this event with custom metadata.
 For example, you may want to save a virtual machine instance ID, a trace ID, or a tenant ID with the request.
 
 #### __`GET_SESSION_TOKEN_OUTGOING`__
-Optional.
 
 <table>
   <tr>
@@ -605,6 +604,8 @@ Optional.
    </td>
   </tr>
 </table>
+
+Optional.
 
 This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents the session token for this event. Similar to [user IDs](#identify_user_outgoing), Moesif tries to get the session token automatically. However, if you setup differs from the standard, this function can help tying up events together and help you replay the events.
 
