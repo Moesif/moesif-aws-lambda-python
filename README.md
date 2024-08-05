@@ -116,7 +116,7 @@ These are the most important files:
 ## Configuration Options
 The following sections describe the available configuration options for this middleware. You can set these options in a Python object and then pass that object as argument to the `MoesifLogger` decorator. See [the sample AWS Lambda middleware function code](https://github.com/Moesif/moesif-aws-lambda-python/blob/857af6d4c12be8681e569f42317043c51acc2341/lambda_function.py#L6) for an example.
 
-### __`IDENTIFY_USER`__
+### `IDENTIFY_USER` 
 <table>
   <tr>
    <th scope="col">
@@ -154,7 +154,7 @@ def identify_user(event, context):
   return event["requestContext"]["identity"]["cognitoIdentityId"]
 ```
 
-### __`IDENTIFY_COMPANY`__
+### `IDENTIFY_COMPANY` 
 
 <table>
   <tr>
@@ -195,7 +195,7 @@ def identify_company(event, context):
 }
 ```
 
-### __`GET_SESSION_TOKEN`__
+### `GET_SESSION_TOKEN` 
 
 <table>
   <tr>
@@ -231,7 +231,7 @@ def get_session_token(event, context):
     return 'XXXXXXXXX'
 ```
 
-### __`GET_API_VERSION`__
+### `GET_API_VERSION` 
 <table>
   <tr>
    <th scope="col">
@@ -266,7 +266,7 @@ def get_api_version(event, context):
   return '1.0.0'
 ```
 
-### __`GET_METADATA`__
+### `GET_METADATA` 
 <table>
   <tr>
    <th scope="col">
@@ -310,7 +310,7 @@ def get_metadata(event, context):
     }
 ```
 
-### __`SKIP`__
+### `SKIP` 
 <table>
   <tr>
    <th scope="col">
@@ -348,7 +348,7 @@ def should_skip(event, context):
     return "/" in event['path']
 ```
 
-### __`MASK_EVENT_MODEL`__
+### `MASK_EVENT_MODEL` 
 <table>
   <tr>
    <th scope="col">
@@ -393,7 +393,7 @@ For more information about the different fields of Moesif's event model,
 see [Moesif Python API documentation](https://www.moesif.com/docs/api?python).
 
 
-### __`DEBUG`__
+### `DEBUG` 
 <table>
   <tr>
    <th scope="col">
@@ -416,7 +416,7 @@ see [Moesif Python API documentation](https://www.moesif.com/docs/api?python).
 Set to `True` to print debug logs if you're having integration issues.
 
 
-### __`LOG_BODY`__
+### `LOG_BODY` 
 <table>
   <tr>
    <th scope="col">
@@ -431,7 +431,7 @@ Set to `True` to print debug logs if you're having integration issues.
     <code>Boolean</code>
    </td>
    <td>
-    <code>true</code>
+    <code>True</code>
    </td>
   </tr>
 </table>
@@ -452,7 +452,7 @@ start_capture_outgoing(moesif_options) # moesif_options are the configuration op
 
 The following options are available for capturing and logging outgoing calls. The request and response objects passed in correspond to the [`Request` and `Response` objects](https://requests.readthedocs.io/en/master/user/advanced/#request-and-response-objects) respectively of the Python Requests library.
 
-#### __`SKIP_OUTGOING`__
+#### `SKIP_OUTGOING` 
 <table>
   <tr>
    <th scope="col">
@@ -481,7 +481,7 @@ Optional.
 
 This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns `True` if you want to skip this particular event.
 
-#### __`IDENTIFY_USER_OUTGOING`__
+#### `IDENTIFY_USER_OUTGOING` 
 <table>
   <tr>
    <th scope="col">
@@ -513,7 +513,7 @@ This function takes Requests [`Request` and `Response` objects](https://requests
 the user ID used by your system. While Moesif tries to identify users automatically, different frameworks and your implementation might be very different. So we highly recommend that you accurately provide a 
 user ID using this function.
 
-#### __`IDENTIFY_COMPANY_OUTGOING`__
+#### `IDENTIFY_COMPANY_OUTGOING` 
 <table>
   <tr>
    <th scope="col">
@@ -544,7 +544,7 @@ Optional.
 This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents
  the company ID for this event.
 
-#### __`GET_METADATA_OUTGOING`__
+#### `GET_METADATA_OUTGOING` 
 <table>
   <tr>
    <th scope="col">
@@ -578,7 +578,7 @@ valid JSON. This allows you to associate this event with custom metadata.
 
 For example, you may want to save a virtual machine instance ID, a trace ID, or a tenant ID with the request.
 
-#### __`GET_SESSION_TOKEN_OUTGOING`__
+#### `GET_SESSION_TOKEN_OUTGOING` 
 
 <table>
   <tr>
@@ -609,7 +609,7 @@ Optional.
 
 This function takes Requests [`Request` and `Response` objects](https://requests.readthedocs.io/en/latest/user/advanced/#request-and-response-objects) and returns a string that represents the session token for this event. Similar to [user IDs](#identify_user_outgoing), Moesif tries to get the session token automatically. However, if you setup differs from the standard, this function can help tying up events together and help you replay the events.
 
-#### __`LOG_BODY_OUTGOING`__
+#### `LOG_BODY_OUTGOING` 
 <table>
   <tr>
    <th scope="col">
@@ -624,7 +624,7 @@ This function takes Requests [`Request` and `Response` objects](https://requests
     <code>Boolean</code>
    </td>
    <td>
-    <code>true</code>
+    <code>True</code>
    </td>
   </tr>
 </table>
@@ -835,7 +835,7 @@ See [Moesif AWS Lambda Example for Python](https://github.com/Moesif/moesif-aws-
 If you face any issues using this middleware, try the [troubheshooting guidelines](#troubleshoot). For further assistance, reach out to our [support team](mailto:support@moesif.com).
 
 ## Explore Other integrations
-Explore other integration options from Moesif in [the Server Integration Options documentation](https://www.moesif.com/docs/getting-started/integration-options/).
+Explore other integration options from Moesif in [the Server Integration Options documentation](https://www.moesif.com/docs/server-integration/).
 
 [ico-built-for]: https://img.shields.io/badge/built%20for-aws%20lambda-blue.svg
 [ico-license]: https://img.shields.io/badge/License-Apache%202.0-green.svg
