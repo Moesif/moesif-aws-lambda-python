@@ -299,7 +299,6 @@ to add custom metadata that Moesif can associate with the request. The metadata 
 
 For example, you may want to save a virtual machine instance ID, a trace ID, or a tenant ID with the request.
 
-
 ```python
 def get_metadata(event, context):
   # your code here:
@@ -639,10 +638,6 @@ See the [example AWS Lambda function](https://github.com/Moesif/moesif-aws-lambd
 The following examples demonstrate how to add and update customer information.
 
 ### Update A Single User
-Create or update a user profile in Moesif.
-The metadata field can be any customer demographic or other info you want to store.
-Only the `user_id` field is required.
-
 To create or update a [user](https://www.moesif.com/docs/getting-started/users/) profile in Moesif, use the `update_user()` function.
 
 ```python
@@ -780,10 +775,6 @@ The `metadata` field can contain any company demographic or other information yo
 
 ### Update Companies in Batch
 To update a list of [companies](https://www.moesif.com/docs/getting-started/companies/) in one batch, use the `update_companies_batch()` function.
-
-Similar to update_company, but used to update a list of companies in one batch.
-Only the `company_id` field is required.
-
 
 ```python
 from moesif_aws_lambda.middleware import *
