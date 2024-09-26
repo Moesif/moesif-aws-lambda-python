@@ -217,6 +217,7 @@ def MoesifLogger(moesif_options):
                 if body_wrapper.get('isBase64Encoded', False) and self.is_base64_str(
                     body_wrapper.get('body')
                 ):
+                    body = body_wrapper.get('body')
                     transfer_encoding = 'base64'
                 else:
                     if isinstance(body_wrapper['body'], str):
