@@ -6,20 +6,6 @@ moesif_options = {
     "LOG_BODY": True,
 }
 
-
-@MoesifLogger(moesif_options)
-def lambda_handler(event, context):
-
-    return {
-        "statusCode": 200,
-        "isBase64Encoded": False,
-        "body": json.dumps(
-            {"msg": "Hello from Lambda!", "req_body": event.get("body")}
-        ),
-        "headers": {"Content-Type": "application/json"},
-    }
-
-
 class TestStrIsBase64(unittest.TestCase):
     def test_valid_base64_encoded_str(self):
         """
