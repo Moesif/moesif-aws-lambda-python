@@ -14,10 +14,11 @@ import base64
 import json
 import os
 from pprint import pprint
-import base64
 
 import random
 import math
+import binascii
+import re
 
 try:
     from urllib import urlencode
@@ -169,6 +170,24 @@ def MoesifLogger(moesif_options):
                     uri = uri + '?' + event['rawQueryString']
             return uri
 
+        def is_base64_str(self, data):
+            """Checks if `data` is a valid base64-encoded string."""
+            if not isinstance(data, str):
+                return False
+            if len(data) % 4 != 0:
+                return False
+            
+            b64_regex = re.compile("^[A-Za-z0-9+/]+={0,2}$")
+
+            if (not b64_regex.fullmatch(data)):
+                return False
+            
+            try:
+                _ = base64.b64decode(data)
+                return True
+            except binascii.Error:
+                return False
+            
         def base64_body(cls, data):
             """Function to transfer body into base64 encoded"""
             body = base64.b64encode(str(data).encode("utf-8"))
@@ -178,6 +197,34 @@ def MoesifLogger(moesif_options):
                 return str(body, "utf-8"), 'base64'
             else:
                 return str(body), 'base64'
+        
+        def safe_json_parse(self, body):
+            """Tries to parse the `body` as JSON safely.
+            Returns the formatted body and the appropriate `transfer_encoding`. 
+            """
+            try:
+                if isinstance(body, (dict, list)):
+                    # If body is an instance of either a dictionary of list, 
+                    # we can return it as is.
+                    return body, None
+                """
+                If body is neither dictionary or list, it has to be one of these types: 
+                - binary data (`bytes` object in Python)
+                - a string
+                - a non-string type object like an integer or float
+                """
+                body_str = None
+                if isinstance(body, bytes):
+                    body_str = body.decode()
+                else:
+                    body_str = str(body)
+                
+                # Now we try to parse the string as JSON
+                json_body = json.loads(body_str)
+                return json_body, None
+
+            except (json.JSONDecodeError, TypeError, ValueError, UnicodeError) as error:
+                return self.base64_body(body)
 
         def process_body(self, body_wrapper):
             """Function to process body"""
@@ -193,18 +240,18 @@ def MoesifLogger(moesif_options):
 
             body = None
             transfer_encoding = None
+
             try:
-                if body_wrapper.get('isBase64Encoded', False):
+                if body_wrapper.get('isBase64Encoded', False) and self.is_base64_str(
+                    body_wrapper.get('body')
+                ):
                     body = body_wrapper.get('body')
                     transfer_encoding = 'base64'
                 else:
-                    if isinstance(body_wrapper['body'], str):
-                        body = json.loads(body_wrapper.get('body'))
-                    else:
-                        body = body_wrapper.get('body')
-                    transfer_encoding = 'json'
+                    body, transfer_encoding = self.safe_json_parse(body_wrapper.get('body'))
             except Exception as e:
                     return self.base64_body(body_wrapper['body'])
+
             return body, transfer_encoding
 
         def before(self, event, context):
