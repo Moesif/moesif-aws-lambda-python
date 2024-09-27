@@ -53,9 +53,7 @@
     },
     "requestId": "id",
     "routeKey": "$default",
-    "stage": "$default",
-    "time": "27/Sep/2024:09:06:03 +0000",
-    "timeEpoch": 1727427963
+    "stage": "$default"
   },
   "body": "eyJ0ZXN0IjoiYm9keSJ9",
   "pathParameters": {

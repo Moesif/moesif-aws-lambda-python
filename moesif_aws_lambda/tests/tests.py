@@ -4,6 +4,7 @@ from ..middleware import MoesifLogger
 
 moesif_options = {
     "LOG_BODY": True,
+    "DEBUG": True
 }
 
 
@@ -48,6 +49,7 @@ class TestProcessBody(unittest.TestCase):
             event_payload = json.load(event)
         Moesif = MoesifLogger(moesif_options)
         moesif_middleware = Moesif(lambda_handler)
+        _ = moesif_middleware(event_payload, {})
         req_body, transfer_encoding = moesif_middleware.process_body(event_payload)
 
         self.assertEqual(req_body, "eyJ0ZXN0IjoiYm9keSJ9")
@@ -66,9 +68,6 @@ class TestProcessBody(unittest.TestCase):
             "moesif_aws_lambda/tests/event_body_json.json",
         ]
 
-        moesif = MoesifLogger(moesif_options)
-        moesif_middleware = moesif(lambda_handler)
-
         expected = [
             ({"foo": "bar"}, None),
             (json.loads(str(10)), None),
@@ -78,6 +77,10 @@ class TestProcessBody(unittest.TestCase):
         for i, file in enumerate(test_files):
             with open(file) as event:
                 payload = json.load(event)
+            moesif = MoesifLogger(moesif_options)
+            moesif_middleware = moesif(lambda_handler)
+            _ = moesif_middleware(payload, {})
+
             req_body, transfer_encoding = moesif_middleware.process_body(payload)
             self.assertTupleEqual((req_body, transfer_encoding), expected[i])
 
