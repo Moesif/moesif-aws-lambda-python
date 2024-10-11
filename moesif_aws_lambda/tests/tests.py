@@ -1,5 +1,6 @@
 import json
 import unittest
+import base64
 from ..middleware import MoesifLogger
 
 moesif_options = {
@@ -39,7 +40,7 @@ class TestStrIsBase64(unittest.TestCase):
 
 
 class TestProcessBody(unittest.TestCase):
-    def test_process_body_for_valid_base64_body(self):
+    def test_request_with_valid_base64_body(self):
         """
         Tests that `process_body` successfully processes body from an event.
         `event.body` for this test is a valid
@@ -50,12 +51,12 @@ class TestProcessBody(unittest.TestCase):
         Moesif = MoesifLogger(moesif_options)
         moesif_middleware = Moesif(lambda_handler)
         _ = moesif_middleware(event_payload, {})
-        req_body, transfer_encoding = moesif_middleware.process_body(event_payload)
+        req_body, transfer_encoding = moesif_middleware.process_body(event_payload, False)
 
         self.assertEqual(req_body, "eyJ0ZXN0IjoiYm9keSJ9")
         self.assertEqual(transfer_encoding, "base64")
 
-    def test_process_body_for_invalid_base64_body_types(self):
+    def test_request_with_invalid_base64_body_types(self):
         """
         Tests that `process_body` successfully processes body from events
         containing invalid body types.
@@ -81,9 +82,50 @@ class TestProcessBody(unittest.TestCase):
             moesif_middleware = moesif(lambda_handler)
             _ = moesif_middleware(payload, {})
 
-            req_body, transfer_encoding = moesif_middleware.process_body(payload)
+            req_body, transfer_encoding = moesif_middleware.process_body(payload, False)
             self.assertTupleEqual((req_body, transfer_encoding), expected[i])
 
+    def test_response_with_json_body(self):
+        """
+        Tests that `process_body` successfully processes response body.
+        Body for this test is a valid JSON.
+        """
+        with open("moesif_aws_lambda/tests/lambda_response.json") as event:
+            response_payload = json.load(event)
+        Moesif = MoesifLogger(moesif_options)
+        moesif_middleware = Moesif(lambda_handler)
+        res_body, transfer_encoding = moesif_middleware.process_body(response_payload, True)
+
+        expected_body = {"message": "Hello from Lambda!"}
+
+        self.assertDictEqual(res_body, expected_body)
+        self.assertEqual(transfer_encoding, "json")
+
+    def test_response_with_b64_body(self):
+        """
+        Tests that `process_body` successfully processes response body.
+        Body for this test is binary data encoded in base64.
+        """
+
+        with open("moesif_aws_lambda/tests/image.png", 'rb') as img_file:
+            img = img_file.read()
+        
+        b64_img = base64.b64encode(img).decode("utf-8"),
+
+        response_payload = {
+            "statusCode": 200,
+            "isBase64Encoded": True,
+            "body": b64_img,
+            "headers": {"Content-Type": "image/png"}, 
+        }
+        
+        Moesif = MoesifLogger(moesif_options)
+        moesif_middleware = Moesif(lambda_handler)
+
+        res_body, transfer_encoding = moesif_middleware.process_body(response_payload, True)
+
+        self.assertEqual(res_body, b64_img)
+        self.assertEqual(transfer_encoding, "base64")
 
 if __name__ == "__main__":
     unittest.main()

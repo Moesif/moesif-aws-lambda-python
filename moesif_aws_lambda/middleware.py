@@ -198,7 +198,7 @@ def MoesifLogger(moesif_options):
             else:
                 return str(body), 'base64'
         
-        def safe_json_parse(self, body):
+        def safe_json_parse(self, body, is_response):
             """Tries to parse the `body` as JSON safely.
             Returns the formatted body and the appropriate `transfer_encoding`. 
             """
@@ -221,12 +221,16 @@ def MoesifLogger(moesif_options):
                 
                 # Now we try to parse the string as JSON
                 json_body = json.loads(body_str)
-                return json_body, None
+                if not is_response:
+                    return json_body, None 
+                else:
+                    return json_body, "json"
+
 
             except (json.JSONDecodeError, TypeError, ValueError, UnicodeError) as error:
                 return self.base64_body(body)
 
-        def process_body(self, body_wrapper):
+        def process_body(self, body_wrapper, is_response):
             """Function to process body"""
 
             if self.LOG_BODY and isinstance(body_wrapper, dict) and 'body' not in body_wrapper:
@@ -242,13 +246,11 @@ def MoesifLogger(moesif_options):
             transfer_encoding = None
 
             try:
-                if body_wrapper.get('isBase64Encoded', False) and self.is_base64_str(
-                    body_wrapper.get('body')
-                ):
+                if body_wrapper.get('isBase64Encoded', False) and (is_response or self.is_base64_str(body_wrapper.get('body'))):
                     body = body_wrapper.get('body')
                     transfer_encoding = 'base64'
                 else:
-                    body, transfer_encoding = self.safe_json_parse(body_wrapper.get('body'))
+                    body, transfer_encoding = self.safe_json_parse(body_wrapper.get('body'), is_response)
             except Exception as e:
                     return self.base64_body(body_wrapper['body'])
 
@@ -307,7 +309,7 @@ def MoesifLogger(moesif_options):
                 request_time = datetime.utcnow()
 
             # Request Body
-            req_body, req_transfer_encoding = self.process_body(event)
+            req_body, req_transfer_encoding = self.process_body(event, False)
 
             # Metadata
             start_time_get_metadata = datetime.utcnow()
@@ -415,7 +417,7 @@ def MoesifLogger(moesif_options):
             event_send = None
             if self.event is not None:
                 # Response body
-                resp_body, resp_transfer_encoding = self.process_body(retval)
+                resp_body, resp_transfer_encoding = self.process_body(retval, True)
 
                 # Event Response object
                 event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
