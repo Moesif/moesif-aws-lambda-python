@@ -51,7 +51,7 @@ class TestProcessBody(unittest.TestCase):
         Moesif = MoesifLogger(moesif_options)
         moesif_middleware = Moesif(lambda_handler)
         _ = moesif_middleware(event_payload, {})
-        req_body, transfer_encoding = moesif_middleware.process_body(event_payload, False)
+        req_body, transfer_encoding = moesif_middleware.process_body(event_payload)
 
         self.assertEqual(req_body, "eyJ0ZXN0IjoiYm9keSJ9")
         self.assertEqual(transfer_encoding, "base64")
@@ -70,9 +70,9 @@ class TestProcessBody(unittest.TestCase):
         ]
 
         expected = [
-            ({"foo": "bar"}, None),
-            (json.loads(str(10)), None),
-            ("eydmb28nOiAnYmFyJ30=", "base64"),
+            ({"foo": "bar"}, "json"),
+            ("MTA=", "base64"),
+            ({"foo": "bar"}, "json"),
         ]
 
         for i, file in enumerate(test_files):
@@ -82,7 +82,7 @@ class TestProcessBody(unittest.TestCase):
             moesif_middleware = moesif(lambda_handler)
             _ = moesif_middleware(payload, {})
 
-            req_body, transfer_encoding = moesif_middleware.process_body(payload, False)
+            req_body, transfer_encoding = moesif_middleware.process_body(payload)
             self.assertTupleEqual((req_body, transfer_encoding), expected[i])
 
     def test_response_with_json_body(self):
@@ -94,7 +94,7 @@ class TestProcessBody(unittest.TestCase):
             response_payload = json.load(event)
         Moesif = MoesifLogger(moesif_options)
         moesif_middleware = Moesif(lambda_handler)
-        res_body, transfer_encoding = moesif_middleware.process_body(response_payload, True)
+        res_body, transfer_encoding = moesif_middleware.process_body(response_payload)
 
         expected_body = {"message": "Hello from Lambda!"}
 
@@ -107,24 +107,19 @@ class TestProcessBody(unittest.TestCase):
         Body for this test is binary data encoded in base64.
         """
 
-        with open("moesif_aws_lambda/tests/image.png", 'rb') as img_file:
-            img = img_file.read()
-        
-        b64_img = base64.b64encode(img).decode("utf-8"),
-
         response_payload = {
             "statusCode": 200,
             "isBase64Encoded": True,
-            "body": b64_img,
-            "headers": {"Content-Type": "image/png"}, 
+            "body": "eyJmb28iOiAiYmFyIn0=",
+            "headers": {"Content-Type": "application/json"}, 
         }
         
         Moesif = MoesifLogger(moesif_options)
         moesif_middleware = Moesif(lambda_handler)
 
-        res_body, transfer_encoding = moesif_middleware.process_body(response_payload, True)
+        res_body, transfer_encoding = moesif_middleware.process_body(response_payload)
 
-        self.assertEqual(res_body, b64_img)
+        self.assertEqual(res_body, "eyJmb28iOiAiYmFyIn0=")
         self.assertEqual(transfer_encoding, "base64")
 
 if __name__ == "__main__":

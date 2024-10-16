@@ -198,7 +198,7 @@ def MoesifLogger(moesif_options):
             else:
                 return str(body), 'base64'
         
-        def safe_json_parse(self, body, is_response):
+        def safe_json_parse(self, body):
             """Tries to parse the `body` as JSON safely.
             Returns the formatted body and the appropriate `transfer_encoding`. 
             """
@@ -206,31 +206,19 @@ def MoesifLogger(moesif_options):
                 if isinstance(body, (dict, list)):
                     # If body is an instance of either a dictionary of list, 
                     # we can return it as is.
-                    return body, None
-                """
-                If body is neither dictionary or list, it has to be one of these types: 
-                - binary data (`bytes` object in Python)
-                - a string
-                - a non-string type object like an integer or float
-                """
-                body_str = None
-                if isinstance(body, bytes):
+                    return body, "json"
+                elif isinstance(body, bytes):
                     body_str = body.decode()
+                    parsed_body = json.loads(body_str)
+                    return parsed_body, "json"
                 else:
-                    body_str = str(body)
-                
-                # Now we try to parse the string as JSON
-                json_body = json.loads(body_str)
-                if not is_response:
-                    return json_body, None 
-                else:
-                    return json_body, "json"
-
-
+                    parsed_body = json.loads(body)
+                    return parsed_body, "json"
+ 
             except (json.JSONDecodeError, TypeError, ValueError, UnicodeError) as error:
                 return self.base64_body(body)
 
-        def process_body(self, body_wrapper, is_response):
+        def process_body(self, body_wrapper):
             """Function to process body"""
 
             if self.LOG_BODY and isinstance(body_wrapper, dict) and 'body' not in body_wrapper:
@@ -246,11 +234,11 @@ def MoesifLogger(moesif_options):
             transfer_encoding = None
 
             try:
-                if body_wrapper.get('isBase64Encoded', False) and (is_response or self.is_base64_str(body_wrapper.get('body'))):
-                    body = body_wrapper.get('body')
-                    transfer_encoding = 'base64'
+                if body_wrapper.get('isBase64Encoded', False) and self.is_base64_str(body_wrapper.get('body')):
+                        body = body_wrapper.get('body')
+                        transfer_encoding = 'base64'
                 else:
-                    body, transfer_encoding = self.safe_json_parse(body_wrapper.get('body'), is_response)
+                    body, transfer_encoding = self.safe_json_parse(body_wrapper.get('body'))
             except Exception as e:
                     return self.base64_body(body_wrapper['body'])
 
@@ -309,7 +297,7 @@ def MoesifLogger(moesif_options):
                 request_time = datetime.utcnow()
 
             # Request Body
-            req_body, req_transfer_encoding = self.process_body(event, False)
+            req_body, req_transfer_encoding = self.process_body(event)
 
             # Metadata
             start_time_get_metadata = datetime.utcnow()
@@ -417,7 +405,7 @@ def MoesifLogger(moesif_options):
             event_send = None
             if self.event is not None:
                 # Response body
-                resp_body, resp_transfer_encoding = self.process_body(retval, True)
+                resp_body, resp_transfer_encoding = self.process_body(retval)
 
                 # Event Response object
                 event_rsp = EventResponseModel(time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],

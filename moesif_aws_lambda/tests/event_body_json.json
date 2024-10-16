@@ -55,7 +55,7 @@
     "routeKey": "$default",
     "stage": "$default"
   },
-  "body": "{'foo': 'bar'}",
+  "body": "{\"foo\": \"bar\"}",
   "pathParameters": {
     "parameter1": "value1"
   },
