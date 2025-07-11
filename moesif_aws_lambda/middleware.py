@@ -276,10 +276,10 @@ def MoesifLogger(moesif_options):
                 return event, context
 
             # Request headers
-            req_headers = {}
+            req_headers = event.get('headers', {})
             try:
-                if 'headers' in event:
-                    req_headers = APIHelper.json_deserialize(event['headers'])
+                if isinstance(req_headers, str):
+                    req_headers = APIHelper.json_deserialize(req_headers)
             except Exception as e:
                 if self.DEBUG:
                     print('[moesif] Error while fetching request headers')
@@ -312,7 +312,10 @@ def MoesifLogger(moesif_options):
                                 'trace_id': str(context.aws_request_id),
                                 'function_name': context.function_name,
                                 'request_context': event['requestContext'],
-                                'context': context
+                                # Lambda context object - https://docs.aws.amazon.com/lambda/latest/dg/python-context.html
+                                'context': {
+                                    'aws_request_id': str(getattr(context, 'aws_request_id', ''))
+                                }
                             }
                     except:
                         if self.DEBUG:
@@ -456,7 +459,7 @@ def MoesifLogger(moesif_options):
                     random_percentage = random.random() * 100
                     gv.sampling_percentage = gv.app_config.get_sampling_percentage(
                         event_model,
-                        gv.config,
+                        json.loads(gv.config.raw_body),
                         self.user_id,
                         self.company_id,
                     )
