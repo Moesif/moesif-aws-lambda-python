@@ -1,6 +1,6 @@
 """This module is to declare global objects."""
 from datetime import datetime
-from moesifpythonrequest.app_config.app_config import AppConfig
+from moesifapi.app_config.app_config import AppConfig
 from moesifapi.moesif_api_client import *
 import os
 
